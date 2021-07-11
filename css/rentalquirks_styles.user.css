@@ -1,0 +1,13 @@
+/* ==UserStyle==
+@name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
+@namespace      https://www.github.com/acropup/RentalQuirks/
+@version        0.0
+@description    For RentalWorks Web at dbwcloud.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
+@preprocessor   less
+@author         Shane Burgess
+==/UserStyle== */
+
+/* Recommend using Stylus browser extension to host CSS UserStyles
+   https://chrome.google.com/webstore/detail/stylus/clngdbkpkpeebahjckkjfobafhncgmne
+
+   Also, use Tampermonkey (Chrome) or Greasemonkey (Firefox) to run the PoRPoise UserScripts. */
