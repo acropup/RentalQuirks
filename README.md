@@ -29,7 +29,7 @@ After installing the Tampermonkey browser extension, go to the [RentalQuirks.use
 If the **CSS** is running, you will see a **QUI sticker** superimposed over the RentalWorks logo.  
 If the **JavaScript** is running, you will see a **version number** superimposed over the RE logo. Note that this is the version number of the RentalWorks Web website, not of the RentalQuirks scripts.
 
-You may also press `F12` to open the Chrome Developer Console to see if any exceptions in the scripts are being thrown. On a **full page refresh**, the last initialization script to run writes **`--- RentalWorks - Quirks mode activated ---`** to the console. If you do not see this, it may be that the scripts aren't running, or that an error interrupted the script before it could finish.
+You may also press `F12` to open the Chrome Developer Console to see if any exceptions in the scripts are being thrown. On a **full page refresh**, the last initialization script to run writes ***`--- RentalWorks - Quirks mode activated ---`*** to the console. If you do not see this, it may be that the scripts aren't running, or that an error interrupted the script before it could finish.
 
 # Development Setup
 
@@ -45,7 +45,7 @@ For users to receive updates to the Tampermonkey script, the `@version` tag in t
 
 # Feature Overview
 
-~~Here is a short feature list of the **`rentalworks_styles.user.css`** script. This standalone set of styles improves the Point of Rental interface without the need for any JavaScript.~~ *`rentalworks_styles.user.css` is not currently in use, but will come into use when enough styling customizations justifies it.*
+~~Here is a short feature list of the **`rentalworks_styles.user.css`** script. This standalone set of styles improves the RentalWorks Web interface without the need for any JavaScript.~~ *`rentalworks_styles.user.css` is not currently in use, but will come into use when enough styling customizations justifies it.*
 
 
 Here is a short feature list of the **RentalQuirks** scripts. This includes both the CSS visual style script `rentalquirks_styles.user.css` as well as the JavaScript file `RentalQuirks.user.js`.

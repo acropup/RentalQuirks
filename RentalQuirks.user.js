@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RentalQuirks - Feature enhancements for RentalWorks Web
 // @namespace    https://www.github.com/acropup/RentalQuirks/
-// @version      0.1
+// @version      0.2
 // @description  RentalQuirks is a collection of Javascript and CSS customizations that improve usability, layout, and features of the web-based "RentalWorks" rental management software at dbwcloud.com
 // @homepageURL  https://www.github.com/acropup/RentalQuirks
 // @author       Shane Burgess
@@ -10,6 +10,9 @@
 // @noframes
 // @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/script_execution_mgr.js
 // @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/rq_p_login.js
+// @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/rq_common.js
+// @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/rq_all_pages.js
+// @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/rq_p_rentalinventory.js
 // ==/UserScript==
 
 // This is the root Tampermonkey script of RentalQuirks. All code is
