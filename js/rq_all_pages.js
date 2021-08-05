@@ -10,6 +10,7 @@
 (function (RQ) {
     'use strict';
     addGlobalApplicationButtons();
+    setTimeout(addPopupButtons, 5000); //setTimeout to ignore all the initial DOM modifications upon page load 
     RQ.runOnPage.push({
         testPath: (path) => true,
         runScript: injectBrowseTableUI
@@ -137,7 +138,7 @@
     function addGlobalApplicationButtons() {
         const onPageLoad = function (mutations, observer) {
             if (mutations.find((mut) => mut.addedNodes.length)) {
-                if (addTitleCaseButton()) {
+                if (addTitleCaseButton(getAppToolbar(), 'afterbegin')) {
                     observer.disconnect();
                 }
             }
@@ -147,23 +148,40 @@
         obs.observe(root, { childList: true });
     }
 
+    function addPopupButtons() {
+        const onPopup = function (mutations, observer) {
+            let newPopup = mutations.find((mut) => mut.addedNodes[0]?.classList.contains('fwpopup'));
+            if (newPopup) {
+                let popupHeader = newPopup.addedNodes[0].querySelector('.fwpopupbox .fwform-menu .buttonbar');
+                let btn = addTitleCaseButton(popupHeader, 'beforeend');
+                if (btn) {
+                    btn.classList.add('btn');
+                    btn.style.marginLeft = 'auto';
+                    btn.insertAdjacentHTML('beforeend', '<div class="btn-text">To Title Case</div>');
+                }
+            }
+        }
+        let root = document.querySelector("#application");
+        const obs = new MutationObserver(onPopup);
+        obs.observe(root, { childList: true });
+    }
+
     function getAppToolbar() {
         return document.querySelector("#fw-app-header .app-usercontrols");
     }
 
-    function addTitleCaseButton() {
-        let appToolbar = getAppToolbar();
-        if (!appToolbar) return false;
+    function addTitleCaseButton(toolbar, position) {
+        if (!toolbar) return false;
 
         let titleCaseBtn = document.createElement('div');
         titleCaseBtn.className = 'titlecasebutton';
         titleCaseBtn.innerHTML = `<i class="material-icons" title="Title Case - Convert a selected field's text to title case">text_fields</i>`; //From https://fonts.google.com/icons
-        appToolbar.insertBefore(titleCaseBtn, appToolbar.firstChild);
+        toolbar.insertAdjacentElement(position, titleCaseBtn);
         // Prevent this button from taking focus, so the existing field with focus can remain focused
         titleCaseBtn.addEventListener('mousedown', e => e.preventDefault());
         // Convert the active (editable) field to Title Case when this button is clicked
         titleCaseBtn.addEventListener('click', activeFieldToTitleCase);
-        return true;
+        return titleCaseBtn;
     }
 
     function activeFieldToTitleCase() {
