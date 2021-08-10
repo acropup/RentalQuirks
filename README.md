@@ -17,8 +17,8 @@ To use these scripts, you will need two generic browser extensions to automatica
 ## Visual stying with CSS UserStyles
 After installing the Stylus browser extension, click the two user.css links below and choose `Install Style` when prompted.
 
-~~[rentalworks_styles.user.css](../../raw/master/css/rentalworks_styles.user.css) includes styles that directly improve the look and structure of RentalWorks Web, and is useful even without Tampermonkey and our custom JavaScript.~~
-[rentalquirks_styles.user.css](../../raw/master/css/rentalquirks_styles.user.css) includes styles that are required by the Tampermonkey script. ~~If `rentalquirks_styles.css` is installed, it is expected that `rentalworks_styles.css` is included as well.~~
+[rentalworks_styles.user.css](../../raw/master/css/rentalworks_styles.user.css) includes styles that directly improve the look and structure of RentalWorks Web, and is useful even without Tampermonkey and our custom JavaScript.
+[rentalquirks_styles.user.css](../../raw/master/css/rentalquirks_styles.user.css) includes styles that are required by the Tampermonkey script. If `rentalquirks_styles.css` is installed, it is expected that `rentalworks_styles.css` is included as well.
 
 ## Functionality improvements with JavaScript UserScripts
 After installing the Tampermonkey browser extension, go to the [RentalQuirks.user.js direct link](../../raw/master/RentalQuirks.user.js) and click the `Install` button.
@@ -45,7 +45,9 @@ For users to receive updates to the Tampermonkey script, the `@version` tag in t
 
 # Feature Overview
 
-~~Here is a short feature list of the **`rentalworks_styles.user.css`** script. This standalone set of styles improves the RentalWorks Web interface without the need for any JavaScript.~~ *`rentalworks_styles.user.css` is not currently in use, but will come into use when enough styling customizations justifies it.*
+Here is a short feature list of the **`rentalworks_styles.user.css`** script. This standalone set of styles improves the RentalWorks Web interface without the need for any JavaScript.
+
+- In Settings, highlight headings and sections that are used quite often, so that they're easier to find.
 
 
 Here is a short feature list of the **RentalQuirks** scripts. This includes both the CSS visual style script `rentalquirks_styles.user.css` as well as the JavaScript file `RentalQuirks.user.js`.
