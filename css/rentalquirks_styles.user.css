@@ -10,102 +10,112 @@
 /* Recommend using Stylus browser extension to host CSS UserStyles
    https://chrome.google.com/webstore/detail/stylus/clngdbkpkpeebahjckkjfobafhncgmne
 
-   Also, use Tampermonkey (Chrome) or Greasemonkey (Firefox) to run the PoRPoise UserScripts. */
-
+   Also, use Tampermonkey (Chrome) or Greasemonkey (Firefox) to run the PoRPoise UserScripts.
+*/
 
 @-moz-document regexp("https?://(web\\d\\d)?\\.dbwcloud\\.com/[^/]+/rentalworks/.*") {
-/* RentalQuirks Styles
-Example URL to match: http://web02.dbwcloud.com/<companyname>/rentalworks/#/module/rentalinventory
-*/
-.app-title .rwpurple {
-   position: relative;
-}
-.app-title .rwpurple::after {
-   content: "Qui";
-   color: darkorange;
-   font-size: .8em;
-   transform: rotate(-7deg);
-   position: absolute;
-   left: .1em;
-   top: .15em;
-   height: 1em;
+   /* Example URL to match: http://web02.dbwcloud.com/<companyname>/rentalworks/#/module/rentalinventory */
+   
+   .app-title .rwpurple {
+      position: relative;
+   }
+   .app-title .rwpurple::after {
+      content: "Qui";
+      color: darkorange;
+      font-size: .8em;
+      transform: rotate(-7deg);
+      position: absolute;
+      left: .1em;
+      top: .15em;
+      height: 1em;
 
-   background-color: #ffb;
-   box-shadow: 0.5px 1px 2px 0px #00000080;
-}
+      background-color: #ffb;
+      box-shadow: 0.5px 1px 2px 0px #00000080;
+   }
 
-/* rwver should be filled by Javascript if Tampermonkey loads it properly */
-.app-title .bgothm[data-rwver]::before {
-   content: "RW " attr(data-rwver);
-   position: absolute;
-   top: 33px;
-   font-size: 0.74rem;
-   left: 50px;
-   color: darkorange;
-}
+   /* rwver should be filled by Javascript if Tampermonkey loads it properly */
+   .app-title .bgothm[data-rwver]::before {
+      content: "RW " attr(data-rwver);
+      position: absolute;
+      top: 33px;
+      font-size: 0.74rem;
+      left: 50px;
+      color: darkorange;
+   }
 
-/* RentalQuirks general */
-.btn.rquirks {
-   box-shadow: inset rgb(255 150 0 / 80%) 0px 0px 3px 3px;
-}
+   /* RentalQuirks general */
+   .btn.rquirks {
+      box-shadow: inset rgb(255 150 0 / 80%) 0px 0px 3px 3px;
+   }
 
-/* Copy Paste field selection */
-.btn.rquirks.working i.material-icons {
-   animation: wiggle 0.8s infinite linear;
-}
-@keyframes wiggle {
-   0% { transform: rotate(9deg); } 
-   10% { transform: rotate(-8deg); } 
-   20% { transform: rotate(7deg); } 
-   30% { transform: rotate(-6deg); } 
-   40% { transform: rotate(5deg); } 
-   50% { transform: rotate(-4deg); } 
-   60% { transform: rotate(5deg); } 
-   70% { transform: rotate(-6deg); } 
-   80% { transform: rotate(7deg); } 
-   90% { transform: rotate(-8deg); } 
-   100% { transform: rotate(9deg); } 
-} 
-.rqselected input,
-.rqselected label.checkbox-caption,
-.rqselected[data-type="radio"],
-.rqselected[data-type="togglebuttons"] .fwformfield-control .togglebutton-item {
-   background-color: skyblue !important;
-   transition: all .3s;
-   /* TODO: checkboxes, radio, and toggle buttons fade in but not out */
-}
-html.theme-material .fwmenu.grid .buttonbar .btn {
-   margin: 0 0 0 2px;
-}
-
+   /* Copy Paste field selection */
+   .btn.rquirks.working i.material-icons {
+      animation: wiggle 0.8s infinite linear;
+   }
+   @keyframes wiggle {
+      0% { transform: rotate(9deg); } 
+      10% { transform: rotate(-8deg); } 
+      20% { transform: rotate(7deg); } 
+      30% { transform: rotate(-6deg); } 
+      40% { transform: rotate(5deg); } 
+      50% { transform: rotate(-4deg); } 
+      60% { transform: rotate(5deg); } 
+      70% { transform: rotate(-6deg); } 
+      80% { transform: rotate(7deg); } 
+      90% { transform: rotate(-8deg); } 
+      100% { transform: rotate(9deg); } 
+   } 
+   .rqselected input,
+   .rqselected label.checkbox-caption,
+   .rqselected[data-type="radio"],
+   .rqselected[data-type="togglebuttons"] .fwformfield-control .togglebutton-item {
+      background-color: skyblue !important;
+      transition: all .3s;
+      /* TODO: checkboxes, radio, and toggle buttons fade in but not out */
+   }
+   html.theme-material .fwmenu.grid .buttonbar .btn {
+      margin: 0 0 0 2px;
+   }
 
 
-#fw-app {
-   --header-hight: 29px;
-}
-#fw-app #fw-app-header .header-wrapper {
-   border: none;
-}
-#fw-app #fw-app-header .system-update-container {
-   display: none;
-}
 
-#fw-app #fw-app-header .app-usercontrols .titlecasebutton {
-   display: flex;
-   align-items: center;
-   cursor: pointer;
-}
-#fw-app #fw-app-header .app-usercontrols .titlecasebutton > i {
-   padding: 6px;
-}
-#fw-app #fw-app-header .app-usercontrols .titlecasebutton:hover {
-   background-color: rgb(255 180 0 / 70%);
-}
+   #fw-app {
+      --header-hight: 29px;
+   }
+   #fw-app #fw-app-header .header-wrapper {
+      border: none;
+   }
+   #fw-app #fw-app-header .system-update-container {
+      display: none;
+   }
 
-/* Making the sorting handles visible seems to prevent you from selecting a row to edit it... too bad.
-td.manual-sort {
-      display: table-cell !important;
+   #fw-app #fw-app-header .app-usercontrols .titlecasebutton {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+   }
+   #fw-app #fw-app-header .app-usercontrols .titlecasebutton > i {
+      padding: 6px;
+   }
+   #fw-app #fw-app-header .app-usercontrols .titlecasebutton:hover {
+      background-color: rgb(255 180 0 / 70%);
+   }
+
+   /* Making the sorting handles visible seems to prevent you from selecting a row to edit it... too bad.
+   td.manual-sort {
+       display: table-cell !important;
+   }
+   */
+
+   /* Make tab headers double-lined to show more description */
+   html.theme-material .fwtabs[data-version="1"]>.tabs .tab .caption {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      white-space: normal;
+      text-overflow: ellipsis;
+      line-height: 1.1em;
+      text-align: center;
+      font-weight: 500;
+   }
 }
-*/
-}
-      

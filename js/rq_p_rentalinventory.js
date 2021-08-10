@@ -7,15 +7,15 @@
         runScript: watchForNewModuleTabs
     });
 
-    RQ.rentalInventory = {
+    RQ.rentalInventory ??= {};
+    RQ.rentalInventory.kit = 
+    {
         //columns of interest list the 'data-caption' values of columns we care about
-        kit: {
-            coi: ['I-Code', 'Description', 'Quantity/%', 'Option', 'Charge'],
-            scratchpad: [],
-            injectUI: injectUI,
-            copyTableData: copyTableData,
-        }
-    }
+        coi: ['I-Code', 'Description', 'Quantity/%', 'Option', 'Charge'],
+        scratchpad: [],
+        injectUI: injectUI,
+        copyTableData: copyTableData,
+    };
 
     function getTableRowCount(tableContainer) {
         //rowText will be of the form "12 rows", or "1 to 15 of 26 rows" if table is split onto multiple pages

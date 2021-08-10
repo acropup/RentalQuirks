@@ -17,6 +17,12 @@
     });
 	RQ.runAlways.push(showRQVersionNumber); //TODO: This doesn't need to run continuously, it just needs to succeed once.
 	
+    RQ.rentalInventory ??= {};
+    RQ.rentalInventory.browse = 
+    {
+        injectUI: injectBrowseTableUI
+    };
+
 	function showRQVersionNumber() {
 		let logoElem = document.querySelector(".app-title .bgothm");
 
@@ -148,6 +154,9 @@
         obs.observe(root, { childList: true });
     }
 
+    /**
+     * Add buttons to popup UI (where a window overlays the page, leaving the previous page mostly visible, but darkened and unclickable), as opposed to the regular tabbed UI.
+     */
     function addPopupButtons() {
         const onPopup = function (mutations, observer) {
             let newPopup = mutations.find((mut) => mut.addedNodes[0]?.classList.contains('fwpopup'));
