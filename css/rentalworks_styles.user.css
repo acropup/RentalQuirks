@@ -1,8 +1,8 @@
 /* ==UserStyle==
 @name           RentalWorks Web Custom Styles
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.0.1
-@description    For RentalWorks Web, these style customizations improve the look and feel of dbwcloud.com. These can be used alongside or without the RentalQuirks JavaScript and CSS package.
+@version        0.1.0
+@description    For RentalWorks Web, these style customizations improve the look and feel of rentalworksweb.com. These can be used alongside or without the RentalQuirks JavaScript and CSS package.
 @preprocessor   less
 @author         Shane Burgess
 ==/UserStyle== */
@@ -10,7 +10,24 @@
 /* Recommend using Stylus browser extension to host CSS UserStyles
    https://chrome.google.com/webstore/detail/stylus/clngdbkpkpeebahjckkjfobafhncgmne
 */
-@-moz-document regexp("https?://(web\\d\\d)?\\.dbwcloud\\.com/[^/]+/rentalworks/#/module/settings") {
+
+@-moz-document regexp("https?://(web\\d\\d)?\\.dbwcloud\\.com/[^/]+/rentalworks/.*"), regexp("https?://[^.]+\\.rentalworksweb\\.com/.*") {
+   /* Put names of icons under pinned main menu */
+   #fw-app-menu:not(.active) > .app-menu-tray > .menu-lv1object::after {
+      content: attr(data-category);
+      position: absolute;
+      bottom: 0;
+      text-align: center;
+      width: 100%;
+      font-size: 9px;
+   }
+   #fw-app-menu:not(.active) > .app-menu-tray > .menu-lv1object[data-category="Administrator"]::after {
+      content: "Admin";
+   }
+}
+
+@-moz-document regexp("https?://(web\\d\\d)?\\.dbwcloud\\.com/[^/]+/rentalworks/#/module/settings"), regexp("https?://[^.]+\\.rentalworksweb\\.com/(training/)?#/module/settings") {
+   /* The following is only for the Settings module */
    
    /* Highlight the sections in Settings that I'm always looking for */
    #btnModuleSettings\.InventorySettings,
