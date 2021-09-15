@@ -2,11 +2,11 @@
     'use strict';
 
     RQ.runOnPage.push({
-        testPath: (path) => !!path.match(/\/rentalworks\/#\/default$/),
+        testPath: (path) => !!path.match(/(\/rentalworks\/)?#\/default$/),
         runScript: goToLogin
     });
     RQ.runOnPage.push({
-        testPath: (path) => !!path.match(/\/rentalworks\/#\/login$/),
+        testPath: (path) => !!path.match(/(\/rentalworks\/)?#\/login$/),
         runScript: autoLogin
     });
 

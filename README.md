@@ -67,6 +67,11 @@ Here is a short feature list of the **RentalQuirks** scripts. This includes both
   - Ctrl + Left click any table cell to filter the column by that value.
 
 
+# TODO
+Deprecate the old dbworks.com domain:
+- remove all references to dbworks.com URLs in documentation, comments, etc.
+- remove the text "(\/rentalworks\/)?" from path matching regexes.
+
 [Stylus]: https://add0n.com/stylus.html
 [StylusChrome]: https://chrome.google.com/webstore/detail/stylus/clngdbkpkpeebahjckkjfobafhncgmne
 [StylusFirefox]: https://addons.mozilla.org/en-US/firefox/addon/styl-us/

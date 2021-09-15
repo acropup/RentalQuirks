@@ -3,7 +3,7 @@
     'use strict';
 
     RQ.runOnPage.push({
-        testPath: (path) => !!path.match(/\/rentalworks\/#\/module\/rentalinventory$/),
+        testPath: (path) => !!path.match(/(\/rentalworks\/)?#\/module\/rentalinventory$/),
         runScript: watchForNewModuleTabs
     });
 
