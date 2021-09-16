@@ -10,6 +10,7 @@
 (function (RQ) {
     'use strict';
     addGlobalApplicationButtons();
+    interceptCtrl_S();
     setTimeout(addPopupButtons, 5000); //setTimeout to ignore all the initial DOM modifications upon page load 
     RQ.runOnPage.push({
         testPath: (path) => true,
@@ -203,6 +204,33 @@
                 textField.dispatchEvent(new Event('change', { "bubbles": true }));
             }
         }
+    }
+    function saveActive () {
+        let allSaveButtons = document.querySelectorAll('.btn[data-type="SaveMenuBarButton"]:not(.disabled)');
+        let visibleSaveButtons = Array.from(allSaveButtons).filter(b => b.offsetWidth != 0);
+        if (visibleSaveButtons.length == 1) {
+            visibleSaveButtons[0].click();
+            return true;
+        }
+        return false;
+        /* Alternative way to save form by calling saveForm from the module
+        
+        let activeForm = document.querySelector('#moduletabs > .tabpages > .tabpage.active > .fwform');
+        let controllerName = activeForm.dataset['controller'];
+        let controller = window[controllerName];
+        controller.saveForm(jQuery(activeForm), {closetab: false});
+        */
+    }
+    function interceptCtrl_S () {
+        document.addEventListener('keydown', function (e) {
+            if (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey) {
+                if (e.code == 'KeyS') {
+                    console.log('Ctrl+S intercepted, saving form.');
+                    saveActive();
+                    e.preventDefault();
+                }
+            }
+        });
     }
 
 })(window.RentalQuirks);
