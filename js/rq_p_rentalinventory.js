@@ -346,8 +346,11 @@
         let field = undefined;
         switch (fieldWrapperDiv.dataset.type) {
             case "validation":
-                fieldWrapperDiv.querySelector('input[type="text"]').value = value;
-                await validateFormField(fieldWrapperDiv);
+                field = fieldWrapperDiv.querySelector('input[type="text"]');
+                if (field.value != value) {
+                    field.value = value;
+                    await validateFormField(fieldWrapperDiv);
+                }
                 break;
             case "text":
                 field = fieldWrapperDiv.querySelector('input[type="text"]');
@@ -386,7 +389,11 @@
             let oldHiddenValue = hiddenField.value;
             //Trigger the validation routine
             doChangeEvent(inputField);
-            while (hiddenField.value == oldHiddenValue) {
+            //We know the change event has succeeded when hiddenField.value changes. But we have a timeout, because
+            //if the field value resolves to the same as it was previously, hiddenField.value won't change.
+            let timerStart = Date.now();
+            let giveUpMS = 5000;
+            while (hiddenField.value == oldHiddenValue && (Date.now() - timerStart) < giveUpMS) {
                 await new Promise(requestAnimationFrame);
             }
         }
@@ -414,42 +421,3 @@
     }
 
 })(window.RentalQuirks);
-
-
-(() => {
-    let textField = document.getSelection().anchorNode?.querySelector('input[type="text"]');
-    let oldText = textField?.value;
-    if (oldText) {
-        let exceptions = ['m', 'in', 'ft', 'KIT', 'RGB', 'LED', 'BWL', 'x', 'mAh'];
-        let exlow = exceptions.map(x => x.toLowerCase());
-        let newText = oldText.replace(/[a-z]+/gi, match => {
-            let mlow = match.toLowerCase();
-            let i = exlow.indexOf(mlow);
-            return i == -1 ? mlow[0].toUpperCase() + mlow.substring(1) : exceptions[i];
-        });
-        newText = newText.replace(/\s\s+/g, " ");
-        if (newText != oldText) {
-            textField.value = newText;
-            textField.dispatchEvent(new Event('change', { "bubbles": true }));
-        }
-    }
-})();
-
-/*
-(() => {
-    let textField = document.getSelection().anchorNode.querySelector('input[type="text"]');
-    let oldText = textField?.value;
-    if (oldText) {
-        let exceptions = ['m', 'in', 'ft', 'KIT', 'RGB', 'LED', 'BWL', 'x', 'mAh'];
-        let exlow = exceptions.map(x => x.toLowerCase());
-        let newText = oldText.replace(/[a-z]+/gi, match => {
-            let mlow = match.toLowerCase();
-            let i = exlow.indexOf(mlow);
-            return i == -1 ? mlow[0].toUpperCase() + mlow.substring(1) : exceptions[i];
-        });
-        if (newText != oldText) {
-            setFieldValue(textField.parentElement, newText);
-        }
-    }
-})();
-*/
