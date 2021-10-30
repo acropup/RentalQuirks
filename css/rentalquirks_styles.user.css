@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.0
+@version        0.1.1
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -67,6 +67,7 @@
       100% { transform: rotate(9deg); } 
    } 
    .rqselected input,
+   .rqselected textarea,
    .rqselected label.checkbox-caption,
    .rqselected[data-type="radio"],
    .rqselected[data-type="togglebuttons"] .fwformfield-control .togglebutton-item {

@@ -2,19 +2,12 @@
 (function (RQ) {
     'use strict';
 
-    RQ.runOnPage.push({
-        testPath: (path) => !!path.match(/(\/rentalworks\/)?#\/module\/rentalinventory$/),
-        runScript: watchForNewModuleTabs
-    });
-
-    RQ.rentalInventory ??= {};
-    RQ.rentalInventory.kit = 
+    RQ.inventory ??= {};
+    RQ.inventory.kitcomplete = 
     {
         //columns of interest list the 'data-caption' values of columns we care about
-        coi: ['I-Code', 'Description', 'Quantity/%', 'Option', 'Charge'],
+        coi: ['I-Code', 'Description', 'Quantity/%', 'Option', 'Charge', 'No Charge or Print'],
         scratchpad: [],
-        injectUI: injectUI,
-        copyTableData: copyTableData,
     };
 
     function getTableRowCount(tableContainer) {
@@ -23,9 +16,8 @@
         return Number.parseInt(rowText);
     }
 
-    function copyTableData() {
-        let coi = RQ.rentalInventory.kit.coi;
-        let tableBody = document.querySelector('#moduletabs > .tabpages > .tabpage.active div[data-name="InventoryKitGrid"] tbody');
+    function copyTableData(tableContainer, coi) {
+        let tableBody = tableContainer.querySelector('tbody');
         let kitRows = Array.from(tableBody.childNodes);
         // Find all the rows that are selected (leftmost checkbox checked)
         let selectedKitRows = kitRows.filter((row) => !!row.querySelector('.tdselectrow input[type="checkbox"]:checked'));
@@ -34,12 +26,12 @@
         let result = kitRows.map((row) =>
             coi.map((columnName) => {
                 let foundCell = Array.from(row.childNodes).find((cell) => cell?.firstChild.dataset.caption == columnName);
+                if (!foundCell) return ""; //The "No Charge or Print" column is only in Completes, so we need to ignore the missing column in Kits
                 let checkbox = foundCell.querySelector('input[type="checkbox"]');
                 if (checkbox) return checkbox.checked ? columnName[0] : ''; // Identify a checked checkbox with the first letter of the column name
                 else return foundCell.firstChild?.firstChild.textContent || '???';
             }));
 
-        RQ.rentalInventory.kit.scratchpad = result;
         result.unshift(coi); //Add column names to result
         console.log(result);
         let resultAsText = result.map((row) => row.join(', ')).join('\n');
@@ -99,8 +91,10 @@
                 }
             }
             else {
-                console.log(`Error: Input field '${coi[icol]}' not found.`);
-                return false;
+                // Note: Completes have a 'No Charge or Print' field, but Kits don't, so 
+                //       just silently accept field not found errors.
+                // console.log(`Error: Input field '${coi[icol]}' not found.`);
+                // return false;
             }
         }
         //The input row is successfully filled out and ready to be saved
@@ -112,10 +106,9 @@
  * @param {string[]} coi Columns of Interest, names of columns that will be entered.
  * @param {string[][]} dataset Array of row data, where row data is a string[] where values relate to Columns of Interest.
  */
-    async function insertTableData(coi, dataset) {
+    async function insertTableData(tableContainer, coi, dataset) {
         let successes = 0;
         let failures = 0;
-        let tableContainer = document.querySelector('#moduletabs > .tabpages > .tabpage.active div[data-name="InventoryKitGrid"]');
 
         let initialItemCount = getTableRowCount(tableContainer);
         let oldRowCount = initialItemCount;
@@ -164,55 +157,50 @@
         console.log(`ending with ${getTableRowCount(tableContainer)} rows`);
     };
 
-    function watchForNewModuleTabs() {
-        let newTabObserver = new MutationObserver((mutations, observer) => {
-            let newTabAdded = mutations.find(mr => mr.addedNodes.length > 0);
-            if (newTabAdded) {
-                
-                //TODO: We might need to handle more than one added node at a time in the future.
-                if (newTabAdded.addedNodes.length > 1) {
-                    console.error("Unhandled: Observed multiple tabs added simultaneously.");
-                }
-                let tabDiv = newTabAdded.addedNodes[0];
-                if (tabDiv.dataset.tabtype == "FORM"
-                    && tabDiv.firstElementChild.dataset.controller == "RentalInventoryController") {
-                    //Whenever a new module tab is opened (one representing an item, kit, etc), inject our custom UI
-                    RQ.rentalInventory.kit.injectUI();
-                }
-                else if (tabDiv.dataset.tabtype == "BROWSE") {
-                    RQ.rentalInventory.browse.injectUI();
-                }
-            }
-        });
-        let tabPages = document.querySelector('#moduletabs > .tabpages');
-        if (tabPages) {
-            newTabObserver.observe(tabPages, { childList: true });
-            return true; //Success
-        }
-    }
+    RQ.runOnNewTab.push({
+        test: (type, controller) => type == 'FORM' && controller == 'RentalInventoryController',
+        runScript: injectUI
+    });
+    RQ.runOnNewTab.push({
+        test: (type, controller) => type == 'FORM' && controller == 'SalesInventoryController',
+        runScript: injectUI
+    });
 
-    function injectUI() {
-        let gridToolbar = document.querySelector('#moduletabs > .tabpages > .tabpage.active div[data-name="InventoryKitGrid"] .gridmenu .buttonbar');
+    function injectUI(new_tab) {
+        let K_tableContainer = new_tab.querySelector('div[data-name="InventoryKitGrid"]');
+        let K_gridToolbar = K_tableContainer.querySelector('.gridmenu .buttonbar');
 
         let bulkAddBtn = document.createElement('div');
         bulkAddBtn.className = 'btn rquirks';
         bulkAddBtn.dataset.type = 'AddTable';
         bulkAddBtn.title = 'Insert table data from clipboard';
         bulkAddBtn.innerHTML = '<i class="material-icons">post_add</i>'; //From https://fonts.google.com/icons
-        gridToolbar.insertBefore(bulkAddBtn, gridToolbar.firstChild);
-        bulkAddBtn.addEventListener('click', () => insertTableData(RQ.rentalInventory.kit.coi, RQ.rentalInventory.kit.scratchpad));
+        K_gridToolbar.insertBefore(bulkAddBtn, K_gridToolbar.firstChild);
+        bulkAddBtn.addEventListener('click', () => insertTableData(K_tableContainer, RQ.inventory.kitcomplete.coi, RQ.inventory.kitcomplete.scratchpad));
 
         let copyBtn = document.createElement('div');
         copyBtn.className = 'btn rquirks';
         copyBtn.dataset.type = 'copyTableData';
         copyBtn.title = 'Copy table data to clipboard';
         copyBtn.innerHTML = '<i class="material-icons">content_copy</i>'; //From https://fonts.google.com/icons
-        gridToolbar.insertBefore(copyBtn, gridToolbar.firstChild);
-        copyBtn.addEventListener('click', copyTableData);
+        K_gridToolbar.insertBefore(copyBtn, K_gridToolbar.firstChild);
+        copyBtn.addEventListener('click', () => RQ.inventory.kitcomplete.scratchpad = copyTableData(K_tableContainer, RQ.inventory.kitcomplete.coi));
+
+        // Now for everything we did for Kits, do the same again for Completes
+        let C_tableContainer = new_tab.querySelector('div[data-name="InventoryCompleteGrid"]');
+        let C_gridToolbar = C_tableContainer.querySelector('.gridmenu .buttonbar');
+        let C_BulkAddBtn = bulkAddBtn.cloneNode(true);
+        C_gridToolbar.insertBefore(C_BulkAddBtn, C_gridToolbar.firstChild);
+        C_BulkAddBtn.addEventListener('click', () => insertTableData(C_tableContainer, RQ.inventory.kitcomplete.coi, RQ.inventory.kitcomplete.scratchpad));
+        let C_CopyBtn = copyBtn.cloneNode(true);
+        C_gridToolbar.insertBefore(C_CopyBtn, C_gridToolbar.firstChild);
+        C_CopyBtn.addEventListener('click', () => RQ.inventory.kitcomplete.scratchpad = copyTableData(C_tableContainer, RQ.inventory.kitcomplete.coi));
 
         //TODO: addUI should work for Completes as well as kits, and probably other tables as well.
         //      Unfortunately, copyTableData and insertTableData are hardcoded for kits, wherever it says div[data-name="InventoryKitGrid"]
-        // let completeBtnBar = document.querySelector('#moduletabs > .tabpages > .tabpage.active div[data-name="InventoryCompleteGrid"] .gridmenu .buttonbar');
+        //NOTE: The above has been addressed, although I still want to make the functions more generic so that they
+        //      can be applied to nearly any table in the UI.
+        // let completeBtnBar = new_tab.querySelector('div[data-name="InventoryCompleteGrid"] .gridmenu .buttonbar');
         // bulkAddBtn = bulkAddBtn.cloneNode(true);
         // copyBtn = copyBtn.cloneNode(true);
         // bulkAddBtn.addEventListener('click', bulkAdd);
@@ -220,7 +208,7 @@
         // completeBtnBar.insertBefore(bulkAddBtn, completeBtnBar.firstChild);
         // completeBtnBar.insertBefore(copyBtn, completeBtnBar.firstChild);
 
-        let tabToolbar = document.querySelector('#moduletabs > .tabpages > .tabpage.active > .fwform > .fwform-menu .buttonbar');
+        let tabToolbar = new_tab.querySelector(':scope > .fwform > .fwform-menu .buttonbar');
         let copyFieldsBtn = document.createElement('div');
         copyFieldsBtn.className = 'btn rquirks';
         copyFieldsBtn.dataset.type = 'CopyFormFieldsButton';
@@ -247,7 +235,7 @@
      * @param {Event} clickEvent the mouse 'click' or 'mousedown' event object
      */
     function chooseInputFields(clickEvent) {
-        if (clickEvent.target.tagName == 'INPUT') {
+        if (clickEvent.target.tagName == 'INPUT' || clickEvent.target.tagName == "TEXTAREA") {
             if (clickEvent.type == "click") {
                 let containingPage = this;
                 let wrapperDiv = clickEvent.path.find((elem) => elem.classList.contains('fwformfield')); //TODO: classList is undefined sometimes???
@@ -299,7 +287,7 @@
             targetTabPage.removeEventListener('click', chooseInputFields);
             targetTabPage.removeEventListener('mousedown', chooseInputFields);
             //Clear any copied data from before
-            RQ.rentalInventory.copiedFields = new Map();
+            RQ.inventory.copiedFields = new Map();
             let selectedFieldNames = Array.from(targetTabPage.querySelectorAll('.rqselected')).map((x) => x.dataset.datafield);
             //TODO: compare to targetTabPage.rqSelectedFieldNames -------but by querying
             //them explicitly like this, it will be more obvious if anything unexpected or undesirable happens.
@@ -312,7 +300,7 @@
                 let value = getFieldValue(fieldWrapperDiv);
                 if (value) { // Protect from things like radio buttons that are entirely disabled or otherwise have no options selected
                     info += `  ${name} = ${value}\n`;
-                    RQ.rentalInventory.copiedFields.set(name, value);
+                    RQ.inventory.copiedFields.set(name, value);
                 }
                 else {
                     info += `  (Ignoring ${name}, value is "${value}")\n`;
@@ -326,8 +314,15 @@
     function getFieldValue(fieldWrapperDiv) {
         switch (fieldWrapperDiv.dataset.type) {
             case "validation": //fallthrough - same as "text"
+            case "number":
             case "text":
                 return fieldWrapperDiv.querySelector('input[type="text"]')?.value;
+                break;
+            case "textarea":
+                return fieldWrapperDiv.querySelector('textarea.fwformfield-value')?.value;
+                break;
+            case "url":
+                return fieldWrapperDiv.querySelector('input[type="url"]')?.value;
                 break;
             case "checkbox":
                 return fieldWrapperDiv.querySelector('input[type="checkbox"]')?.checked;
@@ -352,8 +347,19 @@
                     await validateFormField(fieldWrapperDiv);
                 }
                 break;
+            case "number": //fallthrough - same as "text"
             case "text":
                 field = fieldWrapperDiv.querySelector('input[type="text"]');
+                field.value = value;
+                doChangeEvent(field);
+                break;
+            case "textarea":
+                field = fieldWrapperDiv.querySelector('textarea.fwformfield-value');
+                field.value = value;
+                doChangeEvent(field);
+                break;
+            case "url":
+                field = fieldWrapperDiv.querySelector('input[type="url"]');
                 field.value = value;
                 doChangeEvent(field);
                 break;
@@ -403,7 +409,7 @@
         let pasteBtn = event.target;
         if (pasteBtn.classList.contains('disabled')) return;
         let targetTabPage = pasteBtn.closest('.tabpage');
-        let fieldMap = RQ.rentalInventory.copiedFields;
+        let fieldMap = RQ.inventory.copiedFields;
         if (fieldMap) {
             for (const kv of fieldMap) {
                 let fieldName = kv[0];

@@ -1,10 +1,12 @@
 /* ==UserStyle==
 @name           RentalWorks Web Custom Styles
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.0
+@version        0.1.1
 @description    For RentalWorks Web, these style customizations improve the look and feel of rentalworksweb.com. These can be used alongside or without the RentalQuirks JavaScript and CSS package.
-@preprocessor   less
 @author         Shane Burgess
+@preprocessor   less
+
+@var checkbox SelectableUI "Make UI selectable" 0
 ==/UserStyle== */
 
 /* Recommend using Stylus browser extension to host CSS UserStyles
@@ -23,6 +25,26 @@
    }
    #fw-app-menu:not(.active) > .app-menu-tray > .menu-lv1object[data-category="Administrator"]::after {
       content: "Admin";
+   }
+   
+   & when (@SelectableUI = 1) {
+      /* Make text selectable in the UI like in most webpages */
+      html {
+         -webkit-user-select: text;
+         -moz-user-select: none;
+         -ms-user-select: none;
+         user-select: text;
+      }
+   }
+   
+   div[data-controller="InvoiceController"] > .fwform-body .tabpage.active[id^="gldistributiontabpage"] div[data-grid="GlDistributionGrid"] tbody:empty::after {
+      content: "For invoices that are not yet processed, this table remains empty. If you'd like to preview the table, click 'Preview G/L Distribution' from within the table menu.";
+      background: peachpuff;
+      width: 70%;
+      margin: 2em 0;
+      padding: .7em 1em;
+      position: absolute;
+      left: calc(15% - 1em);
    }
 }
 

@@ -9,33 +9,41 @@
  */
 (function (RQ) {
     'use strict';
-    addGlobalApplicationButtons();
-    interceptCtrl_S();
-    setTimeout(addPopupButtons, 5000); //setTimeout to ignore all the initial DOM modifications upon page load 
-    RQ.runOnPage.push({
-        testPath: (path) => true,
+    RQ.runOnAppLoad = [];
+    RQ.runOnModuleChange = [];
+    RQ.runOnNewTab = [];
+    
+    RQ.runOnAppLoad.push(showRWVersionNumber);
+    RQ.runOnAppLoad.push(addGlobalApplicationButtons);
+    RQ.runOnAppLoad.push(monitorModuleChange);
+    RQ.runOnAppLoad.push(interceptCtrl_S);
+    RQ.runOnAppLoad.push(addPopupButtons);
+    waitForAppLoad();
+    RQ.runOnModuleChange.push({
+        test: () => true,
+        runScript: monitorModuleTabs
+    });
+
+    RQ.runOnNewTab.push({
+        test: (type, controller) => type == 'BROWSE',
         runScript: injectBrowseTableUI
     });
-	RQ.runAlways.push(showRQVersionNumber); //TODO: This doesn't need to run continuously, it just needs to succeed once.
-	
-    RQ.rentalInventory ??= {};
-    RQ.rentalInventory.browse = 
-    {
-        injectUI: injectBrowseTableUI
-    };
 
-	function showRQVersionNumber() {
-		let logoElem = document.querySelector(".app-title .bgothm");
+    function showRWVersionNumber() {
+        let logoElem = document.querySelector(".app-title .bgothm");
 
-		if (logoElem && window.applicationConfig?.version) {
-			// The CSS takes this data attribute and applies to a pseudo-element
-			logoElem.dataset.rwver = window.applicationConfig.version;
-		}
-	}
+        if (logoElem && window.applicationConfig?.version) {
+            // The CSS takes this data attribute and applies to a pseudo-element
+            logoElem.dataset.rwver = window.applicationConfig.version;
+        }
+    }
 
-    function injectBrowseTableUI() {
-        let table = document.querySelector('.tabpage.active[data-tabtype="BROWSE"] .tablewrapper > table');
-        if (!table) return;
+    function injectBrowseTableUI(browse_tab) {
+        let table = browse_tab.querySelector('.tablewrapper > table');
+        if (!table) {
+            console.error('RQ Error: Table element not found within the browse tab.', browse_tab);
+            return;
+        }
         let headerRow = table.querySelector('thead > tr.fieldnames');
         let tableBody = table.querySelector('tbody');
 
@@ -64,7 +72,7 @@
         // Left click toggles between sort up and sort down, and also removes sort on any existing columns.
         // Ctrl + left click to maintain existing sort columns.
         // Right click brings up menu, just like default RentalWorks left click behaviour.
-        
+
         headerRow.addEventListener('click', e => {
             if (e.button != 0) return true;
             let iHeaderMenu = e.path.findIndex(x => x.classList?.contains('columnoptions'));
@@ -143,35 +151,92 @@
     }
 
     function addGlobalApplicationButtons() {
-        const onPageLoad = function (mutations, observer) {
-            if (mutations.find((mut) => mut.addedNodes.length)) {
-                if (addTitleCaseButton(getAppToolbar(), 'afterbegin')) {
-                    observer.disconnect();
-                }
-            }
+        // Add buttons to the existing toolbars
+        let appToolbar = getAppToolbar();
+        if (appToolbar) {
+            addTitleCaseButton(appToolbar, 'afterbegin');
         }
+
+        // Whenever the page is resized, the app-usercontrols element is deleted and re-added, so 
+        // we have to monitor for when it's added, and customize it again every time.
+        let onNewAppUsercontrols = function (mutations, observer) {
+            mutations.forEach(mr => {
+                let node = mr.addedNodes[0];
+                if (node?.classList.contains('app-usercontrols')) {
+                    addTitleCaseButton(node, 'afterbegin');
+                    return;
+                }
+            });
+            // Add buttons every time the app-usercontrols element is recreated by RW
+            let header_obs = new MutationObserver(onNewAppUsercontrols);
+            header_obs.observe(header, { childList: true });
+        };
+    }
+
+    function waitForAppLoad() {
         let root = document.querySelector("#application");
-        const obs = new MutationObserver(onPageLoad);
-        obs.observe(root, { childList: true });
+        if (!root) return; // There's no #application on pages such as report previews
+        elementReady("#fw-app #fw-app-header", root).then(header => {
+            RQ.runOnAppLoad.forEach(script => !script());
+        });
+    }
+
+
+    function monitorModuleChange() {
+        // Whenever the user navigates to a new module, such as by clicking almost anything in the main app left menu,
+        // all existing open tabs are discarded, and in fact, the whole #moduleMaster node is deleted and recreated.
+        // This function monitors for when that happens, so that scripts can be reapplied whenever #moduleMaster is recreated.
+        let app_body = document.querySelector("#fw-app-body");
+        for_child_added(app_body, '#moduleMaster', (new_module) => {
+            let moduleName = new_module.dataset.module;
+            let moduleScripts = RQ.runOnModuleChange.filter(script => script.test(moduleName));
+            console.log(`Running ${moduleScripts.length} module scripts`);
+            moduleScripts.forEach(s => s.runScript());
+        });
+    }
+
+    function monitorModuleTabs() {
+        // Find the tab container
+        let module_tab_pages = document.querySelector("#moduleMaster-body > #moduletabs > .tabpages");
+        if (!module_tab_pages) {
+            console.log('no module tab container found');
+            return;
+        }
+        let run_tab_scripts = function (new_tab) {
+            let tab_type = new_tab.dataset?.tabtype; //'BROWSE' or 'FORM'
+            let controller_name = new_tab.firstElementChild?.dataset?.controller;
+            let scripts = RQ.runOnNewTab.filter(script => script.test(tab_type, controller_name));
+            console.log(`Running ${scripts.length} tab scripts`);
+            scripts.forEach(s => s.runScript(new_tab));
+        };
+        // Run scripts for any existing tabs (there is usually one browse tab as soon as a module is created)
+        module_tab_pages.querySelectorAll(':scope > .tabpage').forEach(run_tab_scripts);
+
+        // Run tab scripts for future tabs as they're created
+        for_child_added(module_tab_pages, '#moduletabs > .tabpages > .tabpage', run_tab_scripts);
     }
 
     /**
      * Add buttons to popup UI (where a window overlays the page, leaving the previous page mostly visible, but darkened and unclickable), as opposed to the regular tabbed UI.
      */
     function addPopupButtons() {
+        // All popups are inserted as children of #application
+        let root = document.querySelector("#application");
+        if (!root) return; // There's no #application on pages such as report previews
+
         const onPopup = function (mutations, observer) {
             let newPopup = mutations.find((mut) => mut.addedNodes[0]?.classList.contains('fwpopup'));
             if (newPopup) {
                 let popupHeader = newPopup.addedNodes[0].querySelector('.fwpopupbox .fwform-menu .buttonbar');
                 let btn = addTitleCaseButton(popupHeader, 'beforeend');
                 if (btn) {
+                    // Extra adjustments needed for where it's being inserted into the popup
                     btn.classList.add('btn');
                     btn.style.marginLeft = 'auto';
                     btn.insertAdjacentHTML('beforeend', '<div class="btn-text">To Title Case</div>');
                 }
             }
         }
-        let root = document.querySelector("#application");
         const obs = new MutationObserver(onPopup);
         obs.observe(root, { childList: true });
     }
@@ -205,7 +270,7 @@
             }
         }
     }
-    function saveActive () {
+    function saveActive() {
         let allSaveButtons = document.querySelectorAll('.btn[data-type="SaveMenuBarButton"]:not(.disabled)');
         let visibleSaveButtons = Array.from(allSaveButtons).filter(b => b.offsetWidth != 0);
         if (visibleSaveButtons.length == 1) {
@@ -221,7 +286,7 @@
         controller.saveForm(jQuery(activeForm), {closetab: false});
         */
     }
-    function interceptCtrl_S () {
+    function interceptCtrl_S() {
         document.addEventListener('keydown', function (e) {
             if (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey) {
                 if (e.code == 'KeyS') {
