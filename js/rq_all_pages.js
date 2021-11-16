@@ -202,18 +202,28 @@
             console.log('no module tab container found');
             return;
         }
-        let run_tab_scripts = function (new_tab) {
+        let choose_and_run_tab_scripts = function (new_tab) {
             let tab_type = new_tab.dataset?.tabtype; //'BROWSE' or 'FORM'
             let controller_name = new_tab.firstElementChild?.dataset?.controller;
             let scripts = RQ.runOnNewTab.filter(script => script.test(tab_type, controller_name));
-            console.log(`Running ${scripts.length} tab scripts`);
-            scripts.forEach(s => s.runScript(new_tab));
+            if (scripts.length == 0) return;
+
+            let run_tab_scripts = function () {
+                console.log(`Running ${scripts.length} tab scripts`);
+                scripts.forEach(s => s.runScript(new_tab));
+            };
+            run_tab_scripts();
+            // If module tab is refreshed, the child element is replaced, so we need to reapply
+            // the scripts to this tab. Currently only applies to FORM, not BROWSE tabs.
+            if (tab_type == "FORM") {
+                for_child_added(new_tab, ".fwcontrol.fwform", run_tab_scripts);
+            }
         };
         // Run scripts for any existing tabs (there is usually one browse tab as soon as a module is created)
-        module_tab_pages.querySelectorAll(':scope > .tabpage').forEach(run_tab_scripts);
+        module_tab_pages.querySelectorAll(':scope > .tabpage').forEach(choose_and_run_tab_scripts);
 
         // Run tab scripts for future tabs as they're created
-        for_child_added(module_tab_pages, '#moduletabs > .tabpages > .tabpage', run_tab_scripts);
+        for_child_added(module_tab_pages, '#moduletabs > .tabpages > .tabpage', choose_and_run_tab_scripts);
     }
 
     /**
