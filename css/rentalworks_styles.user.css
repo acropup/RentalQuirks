@@ -1,12 +1,13 @@
 /* ==UserStyle==
 @name           RentalWorks Web Custom Styles
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.1
+@version        0.1.2
 @description    For RentalWorks Web, these style customizations improve the look and feel of rentalworksweb.com. These can be used alongside or without the RentalQuirks JavaScript and CSS package.
 @author         Shane Burgess
 @preprocessor   less
 
 @var checkbox SelectableUI "Make UI selectable" 0
+@var checkbox HideSettings "Hide unused modules in Settings" 0
 ==/UserStyle== */
 
 /* Recommend using Stylus browser extension to host CSS UserStyles
@@ -55,5 +56,21 @@
    #btnModuleSettings\.InventorySettings,
    #RentalCategory .panel-heading {
       outline: 3px orange dashed;
+   }
+   
+   /* Hide the modules in Settings that our company doesn't use */
+   [data-navigation="Event"],
+   [data-navigation="Facility"],
+   [data-navigation="Generator"],
+   [data-navigation="Props"],
+   [data-navigation="Set"],
+   [data-navigation="Vehicle"],
+   [data-navigation="Wardrobe"] {
+     & when (@HideSettings = 1) {
+       display: none !important;
+     }
+     &, .panel-heading {
+       background-color: rosybrown !important;
+     }
    }
 }
