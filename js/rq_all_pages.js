@@ -26,7 +26,11 @@
 
     RQ.runOnNewTab.push({
         test: (type, controller) => type == 'BROWSE',
-        runScript: injectBrowseTableUI
+        runScript: injectBrowseTabUI
+    });
+    RQ.runOnNewTab.push({
+        test: (type, controller) => type == 'FORM',
+        runScript: injectFormTabUI
     });
 
     function showRWVersionNumber() {
@@ -38,14 +42,48 @@
         }
     }
 
-    function injectBrowseTableUI(browse_tab) {
+    function injectBrowseTabUI(browse_tab) {
         let table = browse_tab.querySelector('.tablewrapper > table');
         if (!table) {
             console.error('RQ Error: Table element not found within the browse tab.', browse_tab);
             return;
         }
-        let headerRow = table.querySelector('thead > tr.fieldnames');
-        let tableBody = table.querySelector('tbody');
+        apply_table_click_overrides(table);
+    }
+
+    function injectFormTabUI(form_tab) {
+        let sub_tabs = form_tab.querySelector('.tabcontainer');
+        if (!sub_tabs || sub_tabs.childElementCount == 0) {
+            //Some forms don't have sub_tabs; there is only one page. Example: many of the RW Utilities.
+            let tables = form_tab.querySelectorAll('[data-control="FwBrowse"]');
+            for (const table of tables) {
+                apply_table_click_overrides(table);
+            }
+        }
+        else {
+            on_class_added('tabGridsLoaded', sub_tabs, (tab) => {
+                let tabpageid = tab.dataset.tabpageid;
+                let tabpage = form_tab.querySelector('#' + tabpageid);
+                let tables = tabpage.querySelectorAll('[data-control="FwBrowse"]');
+                for (const table of tables) {
+                    apply_table_click_overrides(table);
+                }
+            });
+            // The first active tab doesn't get tabGridsLoaded until you move away and back to it,
+            // which doesn't make sense and is probably a harmless bug. I'm fixing it here
+            // as an easy way to trigger on_class_added for the tables on the first tab.
+            sub_tabs.querySelector('.tab.active').classList.add('tabGridsLoaded');
+        }
+    }
+
+    let apply_table_click_overrides = (() => {
+        return function (table) {
+            let headerRow = table.querySelector('thead > tr.fieldnames');
+            let tableBody = table.querySelector('tbody');
+            tableBody.addEventListener('click', clickSortableTable);
+            headerRow.addEventListener('click', leftClickHeaderRow, { capture: true });
+            headerRow.addEventListener('contextmenu', rightClickHeaderRow);
+        };
 
         /**
          * Ctrl+click a table body cell to filter table to show only rows with that value.
@@ -53,12 +91,15 @@
          */
         function clickSortableTable(clickEvent) {
             if (clickEvent.type == "click" && clickEvent.ctrlKey) {
-                let cell = clickEvent.target;
-                let cellVal = cell.innerText;
+                let cell = clickEvent.target.closest('.field');
+                if (!cell) return;
+
+                let cellVal = cell.textContent;
+                const headerRow = cell.closest('table').querySelector('thead > tr.fieldnames');
                 if (cellVal) {
                     let colName = cell.dataset.caption;
                     let colHead = headerRow.querySelector(`td.column .field[data-caption="${colName}"]`);
-                    let filterColField = colHead?.querySelector('.search input[type="text"]');
+                    let filterColField = colHead?.querySelector('.search input[type="text"], .search input[type="search"]'); //Date columns have input type="search"
                     if (filterColField) {
                         filterColField.value = cellVal;
                         doChangeEvent(filterColField);
@@ -66,58 +107,57 @@
                 }
             }
         }
-        tableBody.addEventListener('click', clickSortableTable);
+        
+        // Simulate click on a menu item based on its innerText
+        function clickHeaderMenuItem(fieldCaption, menuItemText) {
+            let menuItems = Array.from(fieldCaption.querySelectorAll('.columnoptions > .columnoptions-button'));
+            let itemToClick = menuItems.find(x => x.innerText.includes(menuItemText));
+            // Do not bubble, to prevent the menu from opening unnecessarily
+            return itemToClick?.dispatchEvent(new Event('click', { bubbles: false }));
+        };
 
         // --- Header row click functionality ---
         // Left click toggles between sort up and sort down, and also removes sort on any existing columns.
         // Ctrl + left click to maintain existing sort columns.
         // Right click brings up menu, just like default RentalWorks left click behaviour.
-
-        headerRow.addEventListener('click', e => {
-            if (e.button != 0) return true;
-            let iHeaderMenu = e.path.findIndex(x => x.classList?.contains('columnoptions'));
+        function leftClickHeaderRow(clickEvent) {
+            if (clickEvent.button != 0) return true;
+            let iHeaderMenu = clickEvent.path.findIndex(x => x.classList?.contains('columnoptions'));
             if (iHeaderMenu >= 0) {
                 // Clicked within the header sort/filter menu
                 // Let the event get handled as usual
                 return true;
             }
             else {
-                let headerCaption = e.path.find(x => x.classList?.contains('fieldcaption'));
+                let headerCaption = clickEvent.path.find(x => x.classList?.contains('fieldcaption'));
                 if (headerCaption) { // Clicked on the header (not on the menu, not on the search field)
                     // Prevent menu from being opened
-                    e.stopPropagation();
-                    // Click a menu item based on its innerText
-                    const clickHeaderMenuItem = function (fieldCaption, menuItemText) {
-                        let menuItems = Array.from(fieldCaption.querySelectorAll('.columnoptions > .columnoptions-button'));
-                        let itemToClick = menuItems.find(x => x.innerText.includes(menuItemText));
-                        // Do not bubble, to prevent the menu from opening unnecessarily
-                        return itemToClick?.dispatchEvent(new Event('click', { bubbles: false }));
-                    };
+                    clickEvent.stopPropagation();
                     // Left-clicking the header toggles column sort direction, defaults to Asc if not yet sorted
                     let sort = headerCaption.parentElement.dataset.sort;
                     let sortText = (sort != "asc") ? "Sort Ascending" : "Sort Descending";
                     if (clickHeaderMenuItem(headerCaption, sortText)) {
                         // Clicking while holding Ctrl key keeps existing sorted columns sorted
-                        if (!e.ctrlKey) {
+                        if (!clickEvent.ctrlKey) {
                             // Get all headers where sorting is turned on (data-sort="asc" or data-sort="desc")
                             // and turn sorting off for those columns (excluding the one we just clicked)
+                            const headerRow = headerCaption.closest('thead > tr.fieldnames');
                             let sortedHeaders = Array.from(headerRow.querySelectorAll('td.column[data-visible="true"] > .field[data-sort$="sc"] > .fieldcaption'));
                             sortedHeaders.forEach(hCap => {
                                 if (hCap != headerCaption) {
                                     clickHeaderMenuItem(hCap, "Sort Off");
                                 }
-                            })
+                            });
                         }
                     }
                 }
             }
-
-        }, { capture: true });
+        }
 
         // This is how right click is handled, not through 'click' or 'auxclick' events
-        headerRow.addEventListener('contextmenu', e => {
-            if (e.button == 2) { // Only handle contextmenu events caused by right clicking (as opposed to Shift+F10 or the context menu key)
-                let headerCaption = e.path.find(x => x.classList?.contains('fieldcaption'));
+        function rightClickHeaderRow(clickEvent) {
+            if (clickEvent.button == 2) { // Only handle contextmenu events caused by right clicking (as opposed to Shift+F10 or the context menu key)
+                let headerCaption = clickEvent.path.find(x => x.classList?.contains('fieldcaption'));
                 if (!headerCaption || headerCaption.classList.contains('active')) {
                     // Header menu is already active, so do nothing and let the browser's right click menu come up.
                     return true;
@@ -143,18 +183,18 @@
                             menu.style.zIndex = 0;
                         }
                     }, { once: true, capture: true });
-                    e.preventDefault();
+                    clickEvent.preventDefault();
                 }
             }
-        });
-        return true;
-    }
+        }
+    })();
 
     function addGlobalApplicationButtons() {
         // Add buttons to the existing toolbars
         let appToolbar = getAppToolbar();
         if (appToolbar) {
             addTitleCaseButton(appToolbar, 'afterbegin');
+            RQ.barcode?.addBarcodeButton(appToolbar, 'afterbegin');
         }
 
         // Whenever the page is resized, the app-usercontrols element is deleted and re-added, so 
@@ -164,6 +204,7 @@
                 let node = mr.addedNodes[0];
                 if (node?.classList.contains('app-usercontrols')) {
                     addTitleCaseButton(node, 'afterbegin');
+                    RQ.barcode?.addBarcodeButton(node, 'afterbegin');
                     return;
                 }
             });
@@ -270,7 +311,10 @@
     }
 
     function activeFieldToTitleCase() {
-        let textField = document.getSelection().anchorNode?.querySelector('input[type="text"]');
+        let selectionNode = document.getSelection().anchorNode;
+        if (!(selectionNode instanceof Element)) return;
+
+        let textField = selectionNode.querySelector('input[type="text"]');
         let oldText = textField?.value;
         if (oldText) {
             let newText = toTitleCase(oldText);

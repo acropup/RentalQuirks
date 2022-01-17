@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.1
+@version        0.1.2
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -92,7 +92,8 @@
    }
    */
 
-   #fw-app #fw-app-header .app-usercontrols .titlecasebutton {
+   #fw-app #fw-app-header .app-usercontrols .titlecasebutton,
+   #fw-app #fw-app-header .app-usercontrols .barcodebutton {
       display: flex;
       align-items: center;
       cursor: pointer;
@@ -100,10 +101,51 @@
    #fw-app #fw-app-header .app-usercontrols .titlecasebutton > i {
       padding: 6px;
    }
-   #fw-app #fw-app-header .app-usercontrols .titlecasebutton:hover {
+   #fw-app #fw-app-header .app-usercontrols .titlecasebutton:hover,
+   #fw-app #fw-app-header .app-usercontrols .barcodebutton:hover {
       background-color: rgb(255 180 0 / 70%);
    }
-
+  
+  
+   #fw-app #fw-app-header .app-usercontrols .barcodebutton {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+   }
+   #fw-app #fw-app-header .app-usercontrols .barcodebutton svg {
+      width: 20px;
+      fill: #212121;
+      border: 1px #212121 solid;
+      padding: 3px;
+      border-radius: 4px;
+   }
+   #fw-app #fw-app-header .app-usercontrols .barcodebutton[data-queue-count]:not([data-queue-count=""])::after {
+	    content: attr(data-queue-count);
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      border-radius: 8px;
+      padding: 0px 4px 1px 4px;
+      background-color: rgb(255 180 0);
+      outline: 1px #212121 solid;
+      font-size: 9px;
+      font-weight: bold;
+   }
+  .fwbrowse {
+      outline: 5px #2d2fb1 solid;
+    
+  }
+  /*[data-rqoutline="1"] {
+      outline: 5px red solid;
+    
+  }
+  [data-control="FwBrowse"]:not([data-rqoutline="1"]) {
+      outline: 5px purple solid;
+    
+  }*/
    /* Making the sorting handles visible seems to prevent you from selecting a row to edit it... too bad.
    td.manual-sort {
        display: table-cell !important;
@@ -121,4 +163,27 @@
       text-align: center;
       font-weight: 500;
    }
+  
+  /* Barcode UI, piggybacking on RentalWorks' fwpopup styling, but not blocking interaction elsewhere on the page. */
+  #rq-barcode.fwpopup {
+    background-color: unset;
+    top: 4em;
+    bottom: unset;
+    left: unset;
+    right: 1.2em;
+    width: unset;
+    height: unset;
+    z-index: 2;
+  }
+  
+  #rq-barcode .fwpopupbox {
+    width: 485px;
+  }
+  #rq-barcode .flexcolumn {
+    flex: 1 0 240px;
+  }
+  
+  .rq-draghandle {
+    cursor: grab;
+  }
 }

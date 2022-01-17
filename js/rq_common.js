@@ -33,3 +33,5 @@ function toTitleCase(inputText) {
     result = result.replace(/\s\s+/g, " ");
     return result;
 }
+
+const LOG = console.log.bind(console);

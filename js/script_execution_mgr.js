@@ -137,7 +137,7 @@ function for_child_added(parent, test_child, do_to_child, only_once = false, tim
  * Waits for an element satisfying selector to exist, then resolves promise with the element.
  * This is most appropriate for waiting on a single element as the page loads.
  *
- * @param {String} selector querySelector string matching the Element that we're waiting for
+ * @param {String} selector querySelector string matching the Element that we're waiting for.
  * @param {Element} root the Element that the MutationObserver is attached to (defaults to document root).
  * @param {Object} observerOptions options passed directly to the MutationObserver (defaults to monitor subtree).
  * @returns {Promise} as soon as a match is found.
@@ -161,4 +161,24 @@ function elementReady(selector, root = document.documentElement, observerOptions
     })
       .observe(root, observerOptions);
   });
+}
+
+/**
+ * Calls a function on a DOM Element when it is assigned a specific class. Can happen repeatedly.
+ * @param {String} class_name the className to be added.
+ * @param {Element} root the Element that the MutationObserver is attached to (defaults to document root).
+ * @param {Function} do_to_elem the function to run when class_name is added, the target Element provided as a parameter.
+ */
+function on_class_added(class_name, root = document.documentElement, do_to_elem) {
+  const observerOptions = {
+    attributeFilter: ["class"], 
+    attributeOldValue: true, 
+    subtree: true
+  };
+  new MutationObserver((mutations, observer) => {
+    // Round up all the newly added nodes which have just had class_name added to their classList
+    mutations.filter((mut) => mut.target.classList.contains(class_name))
+             .filter((mut) => !mut.oldValue.split(' ').includes(class_name))
+             .forEach(m => do_to_elem(m.target));
+  }).observe(root, observerOptions);
 }
