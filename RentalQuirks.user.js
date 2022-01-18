@@ -14,6 +14,8 @@
 // @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/rq_common.js
 // @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/rq_all_pages.js
 // @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/rq_p_rentalinventory.js
+// @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/lib/ZebraBrowserPrint/BrowserPrint-3.0.216.min.js
+// @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/lib/ZebraBrowserPrint/BrowserPrint-Zebra-1.0.216.min.js
 // @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/rq_barcode.js
 // ==/UserScript==
 
