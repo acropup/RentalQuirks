@@ -1,7 +1,19 @@
+/* This code depends on the Zebra Browser Print library. Files to include are:
+   - BrowserPrint-3.0.216.min.js
+   - BrowserPrint-Zebra-1.0.216.min.js
+   Global variables created from these files:
+   - window.BrowserPrint
+   - window.Zebra
+   Note that both RentalWorks code (ex. script1-2019.1.2.206.js) and the Zebra Browser Print library use
+   Closure Compiler, which creates the global window.$jscomp variable. I don't know if there's any risk 
+   of one file clobbering the other, but that's something to keep in mind.
+*/
 (function (RQ) {
   'use strict';
   RQ.barcode = {};
   RQ.barcode.addBarcodeButton = addBarcodeButton;
+  RQ.barcode.deviceList = [];
+  RQ.barcode.selectedDevice;
 
   function addBarcodeButton(toolbar, position) {
     if (!toolbar) return false;
@@ -25,11 +37,14 @@
 }
 
 function init () {
-  if (RQ.barcode.ui) return;
-  let el = document.createElement('div');
-  el.className = 'fwpopup fwconfirmation';
-  el.id = "rq-barcode";
-  el.innerHTML = `
+  if (RQ.barcode.ui) {
+    RQ.barcode.ui.classList.toggle('hidden');
+    return;
+  }
+  let barcode_ui = document.createElement('div');
+  barcode_ui.className = 'fwpopup fwconfirmation';
+  barcode_ui.id = "rq-barcode";
+  barcode_ui.innerHTML = `
   <div class="fwpopupbox fwconfirmationbox rq-draggable">
   <div class="popuptitle rq-draghandle">Barcode Print Utility</div>
   <div class="close-modal"><i class="material-icons"></i>
@@ -49,7 +64,7 @@ function init () {
         <div class="fwcontrol fwcontainer fwform-section" data-control="FwContainer">
           <div class="fwform-section-title">Configuration</div>
           <div class="fwform-section-body">
-            <div class="fwformcontrol" data-type="button"
+            <div class="fwformcontrol" data-type="button" id="printer-refresh"
               style="padding: unset; margin: 0 5px; height: 2.2em; min-width: 2.2em; float: right; margin-top: 20px;">
               <span class="material-icons" style="transform: translateY(4px) rotate(45deg);">autorenew</span>
             </div>
@@ -57,7 +72,7 @@ function init () {
               style="width: calc(100% - 2em);">
               <div class="fwformfield-caption">Printer</div>
               <div class="fwformfield-control">
-                <select class="fwformfield-value">
+                <select class="fwformfield-value" id="printer-select">
                   <option value="">--None found--</option>
                   <option value="">--Achilles--</option>
                 </select>
@@ -120,10 +135,43 @@ function init () {
 
 
   let app_elem = document.getElementById('application');
-  app_elem.appendChild(el);
+  app_elem.appendChild(barcode_ui);
+  let close_btn = barcode_ui.querySelector('.close-modal');
+  close_btn.addEventListener('click', () => barcode_ui.classList.toggle('hidden'));
+  let refresh_btn = barcode_ui.querySelector('#printer-refresh');
+  refresh_btn.addEventListener('click', refresh_device_list);
+  refresh_device_list();
 
+  RQ.barcode.ui = barcode_ui;
   WindowDragger();
 }
+
+
+function refresh_device_list () {
+  let select_container = document.querySelector("#rq-barcode #printer-select");
+  select_container.replaceChildren();
+  let add_device_option = function (device) {
+      RQ.barcode.selectedDevice = device;
+      RQ.barcode.deviceList.push(device);
+      var opt = document.createElement("option");
+      opt.text = device.name;
+      opt.value = device.uid;
+      select_container.add(opt);
+      return opt;
+  };
+  //Get the default device from the application as a first step. Discovery takes longer to complete.
+  BrowserPrint.getDefaultDevice("printer", function(default_device) {
+      //Add device to list of devices and to html select element
+      add_device_option(default_device);
+      RQ.barcode.selectedDevice = default_device;
+      let selected_uid = default_device.uid;
+
+      //Discover any other devices available to the application
+      BrowserPrint.getLocalDevices(function(device_list) {
+          device_list.filter(d => d.uid != selected_uid).forEach(add_device_option);
+      }, function(){notifyUser("Error getting local devices")},"printer");
+  }, function(error) { notifyUser(error); });
+};
 
 
 let WindowDragger = function (container) {
