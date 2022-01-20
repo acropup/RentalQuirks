@@ -192,6 +192,36 @@
   }
     @keyframes fadeIn { 0% { opacity: 0; transform: scale(0.9); visibility: hidden; } 100% { opacity: 1; transform: scale(1); visibility: visible; }}
    @keyframes fadeOut { 0% { opacity: 1; transform: scale(1); visibility: visible; } 100% { opacity: 0; transform: scale(0.9); visibility: hidden;  }} 
+  #barcode-log .fwform-section-body {
+    max-height: 30em;
+    overflow-y: scroll;
+  }
+  #barcode-log .logentry {
+    font: .8em/.9em monospace;
+    padding: .25em 0;
+  }
+  #barcode-log .logentry.warning {
+    font-style: italic;
+    background-color: #ffd;
+  }
+  #barcode-log .logentry.error {
+    background-color: #fcc;
+  }
+  #barcode-log .logentry:before {
+    text-align: center;
+    display: inline-block;
+    width: 1em;
+    font-size: 1.2em;
+  }
+  #barcode-log .logentry.warning:before {
+    content: "!";
+    color: orange;
+    font-style: initial;
+  }
+  #barcode-log .logentry.error:before {
+    content: "X";
+    color: red;
+  }
   .rq-draghandle {
     cursor: grab;
   }
