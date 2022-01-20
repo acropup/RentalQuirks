@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.2
+@version        0.1.3
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -182,7 +182,36 @@
   #rq-barcode .flexcolumn {
     flex: 1 0 240px;
   }
-  
+  #barcode-log .fwform-section-body {
+    max-height: 30em;
+    overflow-y: scroll;
+  }
+  #barcode-log .logentry {
+    font: .8em/.9em monospace;
+    padding: .25em 0;
+  }
+  #barcode-log .logentry.warning {
+    font-style: italic;
+    background-color: #ffd;
+  }
+  #barcode-log .logentry.error {
+    background-color: #fcc;
+  }
+  #barcode-log .logentry:before {
+    text-align: center;
+    display: inline-block;
+    width: 1em;
+    font-size: 1.2em;
+  }
+  #barcode-log .logentry.warning:before {
+    content: "!";
+    color: orange;
+    font-style: initial;
+  }
+  #barcode-log .logentry.error:before {
+    content: "X";
+    color: red;
+  }
   .rq-draghandle {
     cursor: grab;
   }
