@@ -190,8 +190,8 @@
   #rq-barcode.hidden {
       animation-name: fadeOut;
   }
-    @keyframes fadeIn { 0% { opacity: 0; transform: scale(0.9); visibility: hidden; } 100% { opacity: 1; transform: scale(1); visibility: visible; }}
-   @keyframes fadeOut { 0% { opacity: 1; transform: scale(1); visibility: visible; } 100% { opacity: 0; transform: scale(0.9); visibility: hidden;  }} 
+  @keyframes fadeIn { 0% { opacity: 0; transform: scale(0.9); visibility: hidden; } 100% { opacity: 1; transform: scale(1); visibility: visible; }}
+  @keyframes fadeOut { 0% { opacity: 1; transform: scale(1); visibility: visible; } 100% { opacity: 0; transform: scale(0.9); visibility: hidden; }} 
   #barcode-log .fwform-section-body {
     max-height: 30em;
     overflow-y: scroll;

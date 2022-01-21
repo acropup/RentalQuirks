@@ -1,49 +1,7 @@
-/* This code depends on the Zebra Browser Print library. Files to include are:
-   - BrowserPrint-3.0.216.min.js
-   - BrowserPrint-Zebra-1.0.216.min.js
-   Global variables created from these files:
-   - window.BrowserPrint
-   - window.Zebra
-   Note that both RentalWorks code (ex. script1-2019.1.2.206.js) and the Zebra Browser Print library use
-   Closure Compiler, which creates the global window.$jscomp variable. I don't know if there's any risk 
-   of one file clobbering the other, but that's something to keep in mind.
-*/
+
 (function (RQ) {
     'use strict';
-    let devices = [];
-    let selected_device;
-
-    function setup() {
-        //Get the default device from the application as a first step. Discovery takes longer to complete.
-        BrowserPrint.getDefaultDevice("printer", function(device) {
     
-            //Add device to list of devices and to html select element
-            selected_device = device;
-            devices.push(device);
-            var html_select = document.getElementById("selected_device");
-            var option = document.createElement("option");
-            option.text = device.name;
-            html_select.add(option);
-            
-            //Discover any other devices available to the application
-            BrowserPrint.getLocalDevices(function(device_list) {
-                for(var i = 0; i < device_list.length; i++) {
-                    //Add device to list of devices and to html select element
-                    var device = device_list[i];
-                    if(!selected_device || device.uid != selected_device.uid) {
-                        devices.push(device);
-                        var option = document.createElement("option");
-                        option.text = device.name;
-                        option.value = device.uid;
-                        html_select.add(option);
-                    }
-                }
-                
-            }, function(){notifyUser("Error getting local devices")},"printer");
-            
-        }, function(error) { notifyUser(error); });
-    }
-
     function writeToSelectedPrinter(dataToWrite) {
         selected_device.send(dataToWrite, undefined, errorCallback);
     }

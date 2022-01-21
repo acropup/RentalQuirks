@@ -61,6 +61,14 @@
       RQ.barcode.ui.classList.toggle('hidden');
       return;
     }
+
+    let toggle_item_html_string = function (group_name, text, value, selected) {
+      return `<label class="togglebutton-item">
+        <input type="radio" class="fwformfield-value" name="${group_name}" value="${value}"${selected ? 'checked="true"' : ""}>
+        <span class="togglebutton-button">${text}</span>
+      </label>`;
+    }
+
     let barcode_ui = document.createElement('div');
     barcode_ui.className = 'fwpopup fwconfirmation';
     barcode_ui.id = "rq-barcode";
@@ -105,8 +113,8 @@
               style="flex: 0 1 250px;">
               <div class="fwformfield-caption">Barcode Type</div>
               <div class="fwformfield-control">
-                ${toggle_item_html_string("barcode-type","Small",0)}
-                ${toggle_item_html_string("barcode-type","Large",1,true)}
+                ${toggle_item_html_string("barcode-type", "Small", 0)}
+                ${toggle_item_html_string("barcode-type", "Large", 1, true)}
               </div>
             </div>
 
@@ -114,11 +122,11 @@
               style="flex: 0 1 250px;">
               <div class="fwformfield-caption">Print Copies</div>
               <div class="fwformfield-control">
-                ${toggle_item_html_string("print-copies",1,1)}
-                ${toggle_item_html_string("print-copies",2,2)}
-                ${toggle_item_html_string("print-copies",3,3,true)}
-                ${toggle_item_html_string("print-copies",4,4)}
-                ${toggle_item_html_string("print-copies",5,5)}
+                ${toggle_item_html_string("print-copies", 1, 1)}
+                ${toggle_item_html_string("print-copies", 2, 2)}
+                ${toggle_item_html_string("print-copies", 3, 3, true)}
+                ${toggle_item_html_string("print-copies", 4, 4)}
+                ${toggle_item_html_string("print-copies", 5, 5)}
               </div>
             </div>
           </div>
@@ -137,32 +145,30 @@
 
     let app_elem = document.getElementById('application');
     app_elem.appendChild(barcode_ui);
-    
+
     init_ui_elements(barcode_ui);
-    RQ.barcode.byId.text_entry.focus();
+    // Put focus on the textbox whenever the barcode UI is opened
+    barcode_ui.addEventListener('animationend', (e) => {
+      if (e.animationName == "fadeIn") {
+        RQ.barcode.byId.text_entry.focus();
+      }
+    });
 
     RQ.barcode.ui = barcode_ui;
     WindowDragger();
   }
 
-  function toggle_item_html_string (group_name, text, value, selected) {
-    return `<label class="togglebutton-item">
-      <input type="radio" class="fwformfield-value" name="${group_name}" value="${value}"${selected?'checked="true"':""}>
-      <span class="togglebutton-button">${text}</span>
-    </label>`;            
-  }
-
-  function init_ui_elements (barcode_ui) {
+  function init_ui_elements(barcode_ui) {
     let byId = RQ.barcode.byId;
     // Populate byId with references to all DOM elements that have an ID.
-    Array.from(document.querySelectorAll('#rq-barcode [id]')).forEach(elem => byId[elem.id.replaceAll('-','_')] = elem);
+    Array.from(document.querySelectorAll('#rq-barcode [id]')).forEach(elem => byId[elem.id.replaceAll('-', '_')] = elem);
 
     let close_btn = barcode_ui.querySelector('.close-modal');
-  
+
     close_btn.addEventListener('click', () => barcode_ui.classList.toggle('hidden'));
     byId.text_entry.addEventListener('keydown', text_entry_keydown);
     byId.queue_btn.addEventListener('click', click_queue_btn);
-    byId.print_btn.addEventListener('click', print_next_barcode);
+    byId.print_btn.addEventListener('click', (e) => print_next_barcode());
     byId.printer_select.addEventListener('change', update_device_selected);
     byId.printer_refresh_btn.addEventListener('click', refresh_device_list);
     refresh_device_list();
@@ -174,7 +180,7 @@
     let next_barcode = textbox.value;
     let new_item = document.createElement('li');
     let inner_div = document.createElement('div');
-    inner_div.setAttribute('draggable','true');
+    inner_div.setAttribute('draggable', 'true');
     inner_div.textContent = next_barcode;
     new_item.appendChild(inner_div);
     RQ.barcode.byId.barcode_queue.prepend(new_item);
@@ -186,7 +192,7 @@
    * and Ctrl+Enter prints value immediately.
    * @param {KeyboardEvent} e 
    */
-  function text_entry_keydown (e) {
+  function text_entry_keydown(e) {
     if (e.key == 'Enter') {
       if (e.ctrlKey) {
         print_next_barcode(e.target.value);
@@ -210,8 +216,8 @@
       next_barcode = next_item?.textContent;
     }
 
-    let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x=>x.checked)[0].value;
-    let print_copies = Array.from(document.getElementsByName('print-copies')).filter(x=>x.checked)[0].value;
+    let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x => x.checked)[0].value;
+    let print_copies = Array.from(document.getElementsByName('print-copies')).filter(x => x.checked)[0].value;
     let barcode_type = RQ.barcode.barcodeTypes[type_index];
     if (barcode_type.validate(next_barcode)) {
       notify_user(`Printing ${print_copies} of ${next_barcode} in style ${barcode_type.name}`);
@@ -250,6 +256,28 @@
       }, function (e) { notify_user("error", "Unable to get local devices. Is the Zebra Browser Print service running?" + e); }, "printer");
     }, function (e) { notify_user("error", "Unable to get default device. Is the Zebra Browser Print service running? This is indicated by a Zebra logo icon in your Windows system tray." + e); });
   };
+  RQ.barcode.commands = {
+    getConfiguration: () => send_receive_command("^XA^HH^XZ"),
+    read: () => read_from_printer(),
+  }
+
+  function send_receive_command(zpl_command) {
+    notify_user("info", "Send command: " + zpl_command);
+    let dev = RQ.barcode.selectedDevice;
+    dev.send(zpl_command, function (success) {
+      notify_user("info", "Command succeeded");
+      dev.read(function (response) {
+        response ||= "No response";
+        notify_user("info", response);
+      }, (error) => notify_user("error", error));
+    }, (error) => notify_user("error", error));
+  }
+  function read_from_printer() {
+    RQ.barcode.selectedDevice.read(
+      (response) => notify_user("info", response),
+      (error) => notify_user("error", error));
+  }
+
 
   function update_device_selected() {
     let i = RQ.barcode.byId.printer_select.selectedIndex;
