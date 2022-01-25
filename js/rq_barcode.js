@@ -82,6 +82,7 @@
     <div class="flexrow">
       <div class="flexcolumn">
         <div class="fwcontrol fwcontainer fwform-section" data-control="FwContainer">
+          <div id="barcode-picker-btn" class="fwformcontrol" data-type="button">Picker</div>
           <div class="fwform-section-title">Print Queue</div>
             <div class="fwform-section-body"><div id="queue-btn" class="fwformcontrol" data-type="button" style="display: inline-flex; flex-wrap: wrap; align-content: center; height: 2.2em; margin: -1px 0 0 5px; float: right;">Add</div>
             <div class="fwformfield" data-type="text"><div class="fwformfield-control">
@@ -89,7 +90,7 @@
             </div></div>
             <ul id="barcode-queue">
             </ul>
-            <div id="print-btn" class="fwformcontrol" data-type="button" style="flex: 0 0 150px;">Print Next</div>
+            <div id="print-btn" class="fwformcontrol" data-type="button">Print Next</div>
           </div>
         </div>
       </div>
@@ -101,16 +102,14 @@
               style="padding: unset; margin: 0 5px; height: 2.2em; min-width: 2.2em; float: right; margin-top: 20px;">
               <span class="material-icons" style="transform: translateY(4px) rotate(45deg);">autorenew</span>
             </div>
-            <div data-control="FwFormField" data-type="text" class="fwcontrol fwformfield"
-              style="width: calc(100% - 2em);">
+            <div data-control="FwFormField" data-type="text" class="fwcontrol fwformfield">
               <div class="fwformfield-caption">Printer</div>
               <div class="fwformfield-control">
                 <select id="printer-select" class="fwformfield-value"></select>
               </div>
             </div>
 
-            <div data-control="FwFormField" data-type="togglebuttons" class="fwcontrol fwformfield"
-              style="flex: 0 1 250px;">
+            <div data-control="FwFormField" data-type="togglebuttons" class="fwcontrol fwformfield">
               <div class="fwformfield-caption">Barcode Type</div>
               <div class="fwformfield-control">
                 ${toggle_item_html_string("barcode-type", "Small", 0)}
@@ -118,8 +117,7 @@
               </div>
             </div>
 
-            <div data-control="FwFormField" data-type="togglebuttons" class="fwcontrol fwformfield"
-              style="flex: 0 1 250px;">
+            <div data-control="FwFormField" data-type="togglebuttons" class="fwcontrol fwformfield">
               <div class="fwformfield-caption">Print Copies</div>
               <div class="fwformfield-control">
                 ${toggle_item_html_string("print-copies", 1, 1)}
@@ -134,7 +132,7 @@
         <div class="fwcontrol fwcontainer fwform-section" data-control="FwContainer">
           <div class="fwform-section-title">Logging</div>
           <div id="barcode-log" class="fwform-section-body">
-            <div class="logitem">This is a hardcoded message. Please Disregard.</div>
+            <div>To do: Halt printing, dummy printer for dry runs, drag drop, select, delete, stop on invalid code</div>
           </div>
         </div>
       </div>
@@ -171,19 +169,28 @@
     byId.print_btn.addEventListener('click', (e) => print_next_barcode());
     byId.printer_select.addEventListener('change', update_device_selected);
     byId.printer_refresh_btn.addEventListener('click', refresh_device_list);
+    let barcode_selector = BarcodePicker(queue_barcode);
+    byId.barcode_picker_btn.addEventListener('click', () => barcode_selector.toggle_enabled());
     refresh_device_list();
+
+  }
+
+  function queue_barcode(code_string) {
+    let new_item = document.createElement('li');
+    let inner_div = document.createElement('div');
+    inner_div.setAttribute('draggable', 'true');
+    inner_div.textContent = code_string;
+    new_item.appendChild(inner_div);
+    RQ.barcode.byId.barcode_queue.prepend(new_item);
+    let barcode_button = document.querySelector('.app-usercontrols > .barcodebutton');
+    barcode_button.dataset.queueCount = RQ.barcode.byId.barcode_queue.childElementCount;
 
   }
 
   function click_queue_btn() {
     let textbox = RQ.barcode.byId.text_entry;
     let next_barcode = textbox.value;
-    let new_item = document.createElement('li');
-    let inner_div = document.createElement('div');
-    inner_div.setAttribute('draggable', 'true');
-    inner_div.textContent = next_barcode;
-    new_item.appendChild(inner_div);
-    RQ.barcode.byId.barcode_queue.prepend(new_item);
+    queue_barcode(next_barcode);
     textbox.value = "";
     textbox.focus();
   }
@@ -312,6 +319,105 @@
       log_list.prepend(log_entry);
     }
   }
+
+  /**
+   * BarcodePicker monitors clicks, allowing user to select barcode values directly from the UI. When user clicks
+   * a barcode value, select_callback is called, passing the barcode value as a string.
+   * @param {function (code_string)} select_callback when a barcode is selected, the value is passed to this function.
+   */
+  let BarcodePicker = function (select_callback) {
+    const qs_barcode_input = '.fwformfield[data-datafield="BarCode"] input.fwformfield-value'; /* Editable barcode field on Asset forms */
+    const qs_barcode_table = '.field[data-browsedatafield="BarCode"]' /* Header and data cells of barcode column in any table */
+    let root = document.getElementById('application');
+    
+    /**
+     * Call this in a 'click' event handler to prevent other click events from responding.
+     * If handling 'mousedown' events, this prevents the element from gaining focus.
+    * @param {Event} event the mouse 'click' or 'mousedown' event object
+     */
+    function mark_event_handled(event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+
+    return {
+      enabled: false,
+      enable: function () {
+        this.enabled = true;
+        root.classList.add('barcode-highlights');
+        root.addEventListener('click', this.choose_barcodes_in_ui, { capture: true }); // Use capture to come before other event listeners
+        root.addEventListener('mousedown', this.choose_barcodes_in_ui); // To prevent clicked fields from gaining focus
+      },
+
+      disable: function () {
+        this.enabled = false;
+        root.classList.remove('barcode-highlights');
+        root.removeEventListener('click', this.choose_barcodes_in_ui, { capture: true });
+        root.removeEventListener('mousedown', this.choose_barcodes_in_ui);
+      },
+
+      toggle_enabled: function () {
+        this.enabled ? this.disable() : this.enable();
+        return this.enabled;
+      },
+
+      /**
+       * Click event handler that allows user to choose barcode fields to queue up.
+       * Overrides any other click handlers when clicking on INPUT elements or table
+       * elements that are known to store barcode values.
+       * To prevent elements from getting focus during clicks, also register this as
+       * a 'mousedown' event, as that is where focus is set. That way, even though no
+       * selection is made during 'mousedown', it will get preventDefault() as well.
+       * @param {Event} mouse_event the mouse 'click' or 'mousedown' event object
+       */
+      choose_barcodes_in_ui: function (mouse_event) {
+        let click_target = mouse_event.target;
+        if (click_target.tagName == "INPUT") {
+          click_target = click_target.closest(qs_barcode_input);
+          if (!click_target) return;
+          // User clicked an editable barcoded text field, like on Asset forms
+
+          mark_event_handled(mouse_event);
+          if (mouse_event.type == 'mousedown') return; // We only stop event propagation during 'mousedown'
+
+          let code = click_target.value;
+          select_callback(code);
+          return;
+        }
+        else {
+          click_target = click_target.closest(qs_barcode_table);
+          if (!click_target) return;
+          // User clicked within a barcode column in a browse table, either on a header element or a cell
+          if (mouse_event.target.closest('.fieldcaption > .sort, .fieldcaption > .columnoptions')) {
+            return; // Don't handle clicks on a header's sort icon or sort menu
+          }
+
+          mark_event_handled(mouse_event);
+          if (mouse_event.type == 'mousedown') return; // We only stop event propagation during 'mousedown'
+
+          let table_section = click_target.closest('thead, tbody');
+          if (table_section.tagName == "TBODY") {
+            // User clicked a data cell in a barcode column
+            let code = click_target.textContent;
+            select_callback(code);
+            return;
+          }
+          else {
+            // User clicked a barcode column header, which counts as selecting the whole column of values
+            let header_cell = click_target.closest('td');
+            let column_number = header_cell.cellIndex + 1; //query selector :nth-child() is 1-indexed
+            let table_elem = table_section.parentElement;
+            let data_cells = table_elem.querySelectorAll(`tbody > tr > td:nth-child(${column_number}) div.field`);
+            for (const data_cell of data_cells) {
+              select_callback(data_cell.textContent);
+            }
+            return;
+          }
+        }
+      },
+    };
+
+  };
 
 
   //TODO: WindowDragger doesn't belong here. Maybe put it in rq_common.
