@@ -208,10 +208,11 @@
                     return;
                 }
             });
-            // Add buttons every time the app-usercontrols element is recreated by RW
-            let header_obs = new MutationObserver(onNewAppUsercontrols);
-            header_obs.observe(header, { childList: true });
         };
+        let header = document.querySelector("#fw-app-header > .header-wrapper");
+        // Add buttons every time the app-usercontrols element is recreated by RW
+        let header_obs = new MutationObserver(onNewAppUsercontrols);
+        header_obs.observe(header, { childList: true });
     }
 
     function waitForAppLoad() {
