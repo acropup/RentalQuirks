@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.4
+@version        0.1.5
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -161,7 +161,7 @@
   
   /* Barcode UI, piggybacking on RentalWorks' fwpopup styling, but not blocking interaction elsewhere on the page. */
   #rq-barcode.fwpopup {
-    top: 17.5em;
+    top: 24em;
     bottom: unset;
     left: unset;
     right: 1.2em;
@@ -267,9 +267,12 @@
     font-size: 24px;
     vertical-align: middle;
   }
-
-  
-  
+  #barcode-picker-btn {
+    transition: color 0.2s ease;
+  }
+  #barcode-picker-btn.picking {
+    color: rgb(255,180,0);
+  }
 
 .barcode-highlights .fwformfield[data-datafield="BarCode"] input.fwformfield-value, /* Editable barcode field on Asset forms */
 .barcode-highlights .field[data-browsedatafield="BarCode"] /* Header and data cells of barcode column in any table */ {

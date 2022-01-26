@@ -19,18 +19,20 @@
   RQ.barcode.addBarcodeButton = addBarcodeButton;
   RQ.barcode.deviceList = [];
   RQ.barcode.selectedDevice;
+  //Provide a dummy printer entry so that people can practice with the UI without sending prints by accident.
+  const dry_run_device = { name: "Dry run - print disabled", uid: -1 };
   RQ.barcode.barcodeTypes = [
     {
       name: "Small",
       description: "0.5in x 1.0in",
       validate: (code) => { return /^\d{6}$/.test(code); },
-      command: "whatever text to send to printer"
+      command: (code, quantity = 1) => `^XA^XFE:BWL1IN.GRF^FN1^FD${code}^FS^PQ,,${quantity},Y^XZ`
     },
     {
       name: "Large",
       description: "1.0in x 2.0in",
       validate: (code) => { return /^\d{6}$/.test(code); },
-      command: "whatever text to send to printer"
+      command: (code, quantity = 1) => `^XA^XFE:BWL2IN.GRF^FN1^FD${code}^FS^PQ,,${quantity},Y^XZ`
     }
   ];
 
@@ -132,7 +134,7 @@
         <div class="fwcontrol fwcontainer fwform-section" data-control="FwContainer">
           <div class="fwform-section-title">Logging</div>
           <div id="barcode-log" class="fwform-section-body">
-            <div>To do: Halt printing, dummy printer for dry runs, drag drop, select, delete, stop on invalid code</div>
+            <div>To do: Halt printing, drag drop, select, delete, stop on invalid code</div>
           </div>
         </div>
       </div>
@@ -214,7 +216,8 @@
 
   /**Prints the barcode value in next_barcocde, or if none supplied,
    * prints and removes the next barcode in the queue.
-   * @param {the next barcode to print, or undefined} next_barcode 
+   * @param {String} next_barcode the next barcode to print, or undefined
+   * @returns true if print succeeds, false if print failed or if barcode was invalid
    */
   function print_next_barcode(next_barcode = undefined) {
     let next_item;
@@ -223,15 +226,21 @@
       next_barcode = next_item?.textContent;
     }
 
-    let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x => x.checked)[0].value;
     let print_copies = Array.from(document.getElementsByName('print-copies')).filter(x => x.checked)[0].value;
+    let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x => x.checked)[0].value;
     let barcode_type = RQ.barcode.barcodeTypes[type_index];
     if (barcode_type.validate(next_barcode)) {
       notify_user(`Printing ${print_copies} of ${next_barcode} in style ${barcode_type.name}`);
+      if (RQ.barcode.selectedDevice != dry_run_device) {
+        let cmd_string = barcode_type.command(next_barcode, print_copies);
+        send_receive_command(cmd_string);
+      }
       next_item?.remove();
+      return true;
     }
     else {
       notify_user('error', `Value ${next_barcode} is invalid for ${barcode_type.name} barcodes.`);
+      return false;
     }
   }
 
@@ -242,7 +251,6 @@
     RQ.barcode.deviceList = [];
 
     let add_device_option = function (device) {
-      RQ.barcode.selectedDevice = device;
       RQ.barcode.deviceList.push(device);
       var opt = document.createElement("option");
       opt.text = device.name;
@@ -250,6 +258,7 @@
       printer_select.add(opt);
       return opt;
     };
+
     //Get the default device from the application as a first step. Discovery takes longer to complete.
     BrowserPrint.getDefaultDevice("printer", function (default_device) {
       //Add device to list of devices and to html select element
@@ -260,14 +269,17 @@
       //Discover any other devices available to the application
       BrowserPrint.getLocalDevices(function (device_list) {
         device_list.filter(d => d.uid != selected_uid).forEach(add_device_option);
-      }, function (e) { notify_user("error", "Unable to get local devices. Is the Zebra Browser Print service running?" + e); }, "printer");
-    }, function (e) { notify_user("error", "Unable to get default device. Is the Zebra Browser Print service running? This is indicated by a Zebra logo icon in your Windows system tray." + e); });
+        add_device_option(dry_run_device); //Add a dry run entry last, whether or not any queries failed.
+      }, function (e) { add_device_option(dry_run_device); notify_user("error", "Unable to get local devices. Is the Zebra Browser Print service running?" + e); }, "printer");
+    }, function (e) { add_device_option(dry_run_device); notify_user("error", "Unable to get default device. Is the Zebra Browser Print service running? This is indicated by a Zebra logo icon in your Windows system tray." + e); });
   };
   RQ.barcode.commands = {
     getConfiguration: () => send_receive_command("^XA^HH^XZ"),
     read: () => read_from_printer(),
+    send: send_command,
+    send_then_read: send_receive_command
   }
-
+  
   function send_receive_command(zpl_command) {
     notify_user("info", "Send command: " + zpl_command);
     let dev = RQ.barcode.selectedDevice;
@@ -278,6 +290,12 @@
         notify_user("info", response);
       }, (error) => notify_user("error", error));
     }, (error) => notify_user("error", error));
+  }
+  function send_command(zpl_command) {
+    notify_user("info", "Send command: " + zpl_command);
+    RQ.barcode.selectedDevice.send(zpl_command,
+      (success) => notify_user("info", "Command succeeded"),
+      (error) => notify_user("error", error));
   }
   function read_from_printer() {
     RQ.barcode.selectedDevice.read(
@@ -329,7 +347,7 @@
     const qs_barcode_input = '.fwformfield[data-datafield="BarCode"] input.fwformfield-value'; /* Editable barcode field on Asset forms */
     const qs_barcode_table = '.field[data-browsedatafield="BarCode"]' /* Header and data cells of barcode column in any table */
     let root = document.getElementById('application');
-    
+
     /**
      * Call this in a 'click' event handler to prevent other click events from responding.
      * If handling 'mousedown' events, this prevents the element from gaining focus.
@@ -344,6 +362,7 @@
       enabled: false,
       enable: function () {
         this.enabled = true;
+        RQ.barcode.byId.barcode_picker_btn.classList.add('picking');
         root.classList.add('barcode-highlights');
         root.addEventListener('click', this.choose_barcodes_in_ui, { capture: true }); // Use capture to come before other event listeners
         root.addEventListener('mousedown', this.choose_barcodes_in_ui); // To prevent clicked fields from gaining focus
@@ -351,6 +370,7 @@
 
       disable: function () {
         this.enabled = false;
+        RQ.barcode.byId.barcode_picker_btn.classList.remove('picking');
         root.classList.remove('barcode-highlights');
         root.removeEventListener('click', this.choose_barcodes_in_ui, { capture: true });
         root.removeEventListener('mousedown', this.choose_barcodes_in_ui);
