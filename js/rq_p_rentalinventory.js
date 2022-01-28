@@ -224,6 +224,18 @@
         pasteFieldsBtn.innerHTML = '<i class="material-icons">content_paste</i>Paste Fields'; //From https://fonts.google.com/icons
         tabToolbar.insertBefore(pasteFieldsBtn, null);
         pasteFieldsBtn.addEventListener('click', clickPasteFieldsButton);
+
+        // To confirm Tracked By changes, allow user to click the notification text rather than type it.
+        // Standard notification is like: "Type 'BARCODE' here to confirm this change. All items will be altered on save.""
+        let confirmTrackedBy = new_tab.querySelector('.fwformfield[data-datafield="ConfirmTrackedBy"]');
+        if (confirmTrackedBy) {
+            let caption = confirmTrackedBy.querySelector('.fwformfield-caption');
+            caption.style.cursor = 'help'; // Logically should be 'pointer', but 'help' catches the user's attention better.
+            caption.addEventListener('click', (e) => {
+                let field = confirmTrackedBy.querySelector('input.fwformfield-value');
+                field.value = confirmTrackedBy.textContent.split("'",2)[1];
+            });
+        }
     };
 
     /**
