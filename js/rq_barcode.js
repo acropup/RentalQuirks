@@ -177,11 +177,14 @@
 
   }
 
-  function queue_barcode(code_string) {
+  function queue_barcode(barcode_info) {
     let new_item = document.createElement('li');
     let inner_div = document.createElement('div');
     inner_div.setAttribute('draggable', 'true');
-    inner_div.textContent = code_string;
+    inner_div.textContent = barcode_info.Barcode;
+    if (barcode_info.ItemId) {
+      inner_div.dataset.itemid = barcode_info.ItemId;
+    }
     new_item.appendChild(inner_div);
     RQ.barcode.byId.barcode_queue.prepend(new_item);
     let barcode_button = document.querySelector('.app-usercontrols > .barcodebutton');
@@ -192,7 +195,7 @@
   function click_queue_btn() {
     let textbox = RQ.barcode.byId.text_entry;
     let next_barcode = textbox.value;
-    queue_barcode(next_barcode);
+    queue_barcode({ Barcode: next_barcode, ItemId: undefined });
     textbox.value = "";
     textbox.focus();
   }
@@ -337,11 +340,12 @@
       log_list.prepend(log_entry);
     }
   }
-
+  
   /**
    * BarcodePicker monitors clicks, allowing user to select barcode values directly from the UI. When user clicks
-   * a barcode value, select_callback is called, passing the barcode value as a string.
-   * @param {function (code_string)} select_callback when a barcode is selected, the value is passed to this function.
+   * a barcode value, select_callback is called, passing the barcode value and Asset ItemId.
+   * @param {function (code_string)} select_callback when a barcode is selected, the value and associated Asset ItemId 
+   * is passed to this function as an object { Barcode: String, ItemId: String }
    */
   let BarcodePicker = function (select_callback) {
     const qs_barcode_input = '.fwformfield[data-datafield="BarCode"] input.fwformfield-value'; /* Editable barcode field on Asset forms */
@@ -401,7 +405,10 @@
           if (mouse_event.type == 'mousedown') return; // We only stop event propagation during 'mousedown'
 
           let code = click_target.value;
-          select_callback(code);
+          // ItemId, an Asset's unique identifier, is in a hidden field on the Asset form tab
+          let tabpage_body = click_target.closest('.fwform-body');
+          let item_id = tabpage_body?.querySelector('.fwformfield[data-datafield="ItemId"] input.fwformfield-value')?.value;
+          select_callback({ Barcode: code, ItemId: item_id });
           return;
         }
         else {
@@ -419,17 +426,25 @@
           if (table_section.tagName == "TBODY") {
             // User clicked a data cell in a barcode column
             let code = click_target.textContent;
-            select_callback(code);
+            // ItemId contains the Asset's unique identifier, and should be in the first (hidden) column of the table
+            let item_id = click_target.closest('tr').querySelector('.field[data-browsedatafield="ItemId"]')?.textContent;
+            select_callback({ Barcode: code, ItemId: item_id });
             return;
           }
           else {
             // User clicked a barcode column header, which counts as selecting the whole column of values
-            let header_cell = click_target.closest('td');
-            let column_number = header_cell.cellIndex + 1; //query selector :nth-child() is 1-indexed
             let table_elem = table_section.parentElement;
-            let data_cells = table_elem.querySelectorAll(`tbody > tr > td:nth-child(${column_number}) div.field`);
-            for (const data_cell of data_cells) {
-              select_callback(data_cell.textContent);
+            let get_column = function (column_name) {
+              let header = table_elem.querySelector('thead > tr.fieldnames');
+              let header_cell = header.querySelector(`td > .field[data-browsedatafield="${column_name}"]`)
+              let column_number = header_cell.parentElement.cellIndex + 1;  //query selector :nth-child() is 1-indexed
+              return table_elem.querySelectorAll(`tbody > tr > td:nth-child(${column_number}) div.field`);
+            };
+
+            let barcode_cells = get_column('BarCode');
+            let item_id_cells = get_column('ItemId');
+            for (let i = 0; i < barcode_cells.length; i++) {
+              select_callback({ Barcode: barcode_cells[i].textContent, ItemId: item_id_cells[i]?.textContent });
             }
             return;
           }
