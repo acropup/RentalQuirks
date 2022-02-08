@@ -49,6 +49,8 @@
          *          a String describing an error that occurred.
          */
         RQ.update_asset = function (item_id, payload) {
+            // Payload requires ItemId even though it's also specified in the URL
+            payload.ItemId = item_id;
             return fetch(RW_URL + "api/v1/item/" + item_id, {
                 "headers": standard_headers,
                 "referrer": RW_URL,

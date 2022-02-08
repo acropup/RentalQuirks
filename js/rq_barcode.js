@@ -17,10 +17,10 @@
   RQ.barcode = {};
   RQ.barcode.byId = {}; //Will contain references to all DOM elements that have ID specified.
   RQ.barcode.addBarcodeButton = addBarcodeButton;
-  RQ.barcode.deviceList = [];
-  RQ.barcode.selectedDevice;
+  RQ.barcode.printerList = [];
+  RQ.barcode.selectedPrinter;
   //Provide a dummy printer entry so that people can practice with the UI without sending prints by accident.
-  const dry_run_device = { name: "Dry run - print disabled", uid: -1 };
+  const dry_run_printer = { name: "Dry run - print disabled", uid: -1 };
   RQ.barcode.barcodeTypes = [
     {
       name: "Small",
@@ -36,6 +36,8 @@
     }
   ];
 
+  //TODO: Remove this after debugging. This opens barcode utility automatically when page loads.
+  RQ.runOnAppLoad.push(init);
 
   function addBarcodeButton(toolbar, position) {
     if (!toolbar) return false;
@@ -93,6 +95,8 @@
             <ul id="barcode-queue">
             </ul>
             <div id="print-btn" class="fwformcontrol" data-type="button">Print Next</div>
+            <div id="activate-btn" class="fwformcontrol" data-type="button">Activate Barcodes</div>
+            <div id="deactivate-btn" class="fwformcontrol" data-type="button">Deactivate Barcodes</div>
           </div>
         </div>
       </div>
@@ -134,7 +138,7 @@
         <div class="fwcontrol fwcontainer fwform-section" data-control="FwContainer">
           <div class="fwform-section-title">Logging</div>
           <div id="barcode-log" class="fwform-section-body">
-            <div>To do: Halt printing, drag drop, select, delete, stop on invalid code</div>
+            <div>To do: Halt printing, stop on invalid code</div>
           </div>
         </div>
       </div>
@@ -160,7 +164,8 @@
 
   function init_ui_elements(barcode_ui) {
     let byId = RQ.barcode.byId;
-    // Populate byId with references to all DOM elements that have an ID.
+    // Populate byId with references to all DOM elements within barcode_ui that have an ID.
+    byId[barcode_ui.id.replaceAll('-', '_')] = barcode_ui;
     Array.from(document.querySelectorAll('#rq-barcode [id]')).forEach(elem => byId[elem.id.replaceAll('-', '_')] = elem);
 
     let close_btn = barcode_ui.querySelector('.close-modal');
@@ -169,32 +174,148 @@
     byId.text_entry.addEventListener('keydown', text_entry_keydown);
     byId.queue_btn.addEventListener('click', click_queue_btn);
     byId.print_btn.addEventListener('click', (e) => print_next_barcode());
-    byId.printer_select.addEventListener('change', update_device_selected);
-    byId.printer_refresh_btn.addEventListener('click', refresh_device_list);
+    byId.printer_select.addEventListener('change', update_printer_selected);
+    byId.printer_refresh_btn.addEventListener('click', refresh_printer_list);
     let barcode_selector = BarcodePicker(queue_barcode);
     byId.barcode_picker_btn.addEventListener('click', () => barcode_selector.toggle_enabled());
-    refresh_device_list();
+    byId.activate_btn.addEventListener('click', () => {
+      // If any queue items are selected, operate on selected elements only
+      let has_selection = !!byId.barcode_queue.querySelector('li.selected');
+      let queue_items = byId.barcode_queue.querySelectorAll(`li${has_selection ? '.selected' : ''} > [data-itemid][data-is-valid=false]`);
+      activate_barcodes([...queue_items]);
+    });
+    byId.deactivate_btn.addEventListener('click', () => {
+      // If any queue items are selected, operate on selected elements only
+      let has_selection = !!byId.barcode_queue.querySelector('li.selected');
+      let queue_items = byId.barcode_queue.querySelectorAll(`li${has_selection ? '.selected' : ''} > [data-itemid][data-is-valid=true]`);
+      deactivate_barcodes([...queue_items]);
+    });
 
+    refresh_printer_list();
+
+
+    let encode_li = function (elems) {
+      return Array.from(elems).map(elem => {
+        let barcode = elem.textContent;
+        let item_id = elem.dataset.itemid;
+        if (item_id) {
+          barcode += '[' + item_id + ']';
+        }
+        return barcode;
+      }).join('\n');
+    };
+    let decode_li = function (encode_string) {
+      let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x => x.checked)[0].value;
+      let validate = RQ.barcode.barcodeTypes[type_index].validate;
+
+      let entries = encode_string.split(/\s+/).filter(Boolean);
+      return entries.map(str => {
+        let m = str.match(/([^[]+)(?:\[([^\]]*)])?/);
+        let div = document.createElement('div'); //TODO: This is very similar to queue_barcode()
+        div.setAttribute('draggable', true);
+        div.textContent = m[1];      //Barcode
+        div.dataset.isValid = validate(m[1]);
+        if (m[2]) {
+          div.dataset.itemid = m[2]; //Asset ItemId
+        }
+        return div;
+      });
+    };
+    DragDropList(byId.barcode_queue, encode_li, decode_li);
+    DragDropList(byId.barcode_log, encode_li, decode_li);
+  }
+
+  /**Takes an array of (presumably deactivated) items from the barcode queue, and 
+   * calls the RW API to update each item's barcode with the 'X' identifier removed.
+   * Barcodes are activated when an Asset without a barcode is recovered, so that
+   * we can print and apply barcode stickers to that asset.
+   * @param {[Element]} queue_items the DOM Elements in the barcode queue that need their barcodes activated
+   */
+  function activate_barcodes(queue_items) {
+    let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x => x.checked)[0].value;
+    let validate = RQ.barcode.barcodeTypes[type_index].validate;
+    queue_items.forEach(queue_item => {
+      // Validate and package updates for each item
+      let barcode = queue_item.textContent;
+      let item_id = queue_item.dataset.itemid;
+      let deactivated_identifier = barcode.slice(-1).toUpperCase();
+      let active_barcode = barcode.slice(0, -1);
+      // Ignore any items that failed validation
+      if (item_id && deactivated_identifier == 'X' && validate(active_barcode)) {
+        // Update each asset with activated barcode values
+        RQ.update_asset(item_id, { BarCode: active_barcode })
+          .then(json_or_error => {
+            if (typeof json_or_error == 'string' || !(json_or_error['BarCode'])) {
+              console.log("update_asset failed: " + json_or_error, queue_item);
+            }
+            else {
+              // Update the barcode value in the queue list once the update is confirmed by the backend
+              queue_item.textContent = json_or_error['BarCode'];
+              queue_item.dataset.isValid = true; // Value validated above
+              console.log('updated', json_or_error);
+            }
+          });
+      }
+    });
+  }
+
+  /**Takes an array of items from the barcode queue, and calls the RW API to update
+   * each item's barcode with an 'X' appended to it. The 'X' serves an identifier
+   * to mark that this barcode is deactivated. Barcodes are deactivated when they
+   * have been assigned to an asset, but the asset is not yet available to apply a
+   * barcode sticker to. This way, we know which barcodes haven't been printed or used yet.
+   * @param {[Element]} queue_items the DOM Elements in the barcode queue that need their barcodes deactivated
+   */
+  function deactivate_barcodes(queue_items) {
+    let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x => x.checked)[0].value;
+    let validate = RQ.barcode.barcodeTypes[type_index].validate;
+    queue_items.forEach(queue_item => {
+      let barcode = queue_item.textContent;
+      let item_id = queue_item.dataset.itemid;
+      // Only deactivate barcodes that appear to be valid
+      if (item_id && validate(barcode)) {
+        // Update each asset's barcode values with an 'X' appended, to identify the barcode as deactivated
+        RQ.update_asset(item_id, { BarCode: barcode + "X" })
+          .then(json_or_error => {
+            if (typeof json_or_error == 'string' || !(json_or_error['BarCode'])) {
+              console.log("update_asset failed: " + json_or_error, queue_item);
+            }
+            else {
+              queue_item.textContent = json_or_error['BarCode'];
+              queue_item.dataset.isValid = false; // Value is invalid because of 'X', the deactivated identifier
+              console.log('updated', json_or_error);
+            }
+          });
+      }
+    });
   }
 
   function queue_barcode(barcode_info) {
+    let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x => x.checked)[0].value;
+    let validate = RQ.barcode.barcodeTypes[type_index].validate;
+
     let new_item = document.createElement('li');
     let inner_div = document.createElement('div');
     inner_div.setAttribute('draggable', 'true');
     inner_div.textContent = barcode_info.Barcode;
+    inner_div.dataset.isValid = validate(barcode_info.Barcode);
     if (barcode_info.ItemId) {
       inner_div.dataset.itemid = barcode_info.ItemId;
     }
     new_item.appendChild(inner_div);
     RQ.barcode.byId.barcode_queue.prepend(new_item);
+    update_queue_count();
+  }
+
+  function update_queue_count() {
     let barcode_button = document.querySelector('.app-usercontrols > .barcodebutton');
     barcode_button.dataset.queueCount = RQ.barcode.byId.barcode_queue.childElementCount;
-
   }
 
   function click_queue_btn() {
     let textbox = RQ.barcode.byId.text_entry;
     let next_barcode = textbox.value;
+    // If a barcode is submitted manually, we don't have immediate access to the ItemId
     queue_barcode({ Barcode: next_barcode, ItemId: undefined });
     textbox.value = "";
     textbox.focus();
@@ -234,7 +355,7 @@
     let barcode_type = RQ.barcode.barcodeTypes[type_index];
     if (barcode_type.validate(next_barcode)) {
       notify_user(`Printing ${print_copies} of ${next_barcode} in style ${barcode_type.name}`);
-      if (RQ.barcode.selectedDevice != dry_run_device) {
+      if (RQ.barcode.selectedPrinter != dry_run_printer) {
         let cmd_string = barcode_type.command(next_barcode, print_copies);
         send_receive_command(cmd_string);
       }
@@ -247,34 +368,34 @@
     }
   }
 
-  function refresh_device_list() {
+  function refresh_printer_list() {
     let printer_select = RQ.barcode.byId.printer_select;
     printer_select.replaceChildren();
-    RQ.barcode.selectedDevice = null;
-    RQ.barcode.deviceList = [];
+    RQ.barcode.selectedPrinter = null;
+    RQ.barcode.printerList = [];
 
-    let add_device_option = function (device) {
-      RQ.barcode.deviceList.push(device);
+    let add_printer_option = function (printer) {
+      RQ.barcode.printerList.push(printer);
       var opt = document.createElement("option");
-      opt.text = device.name;
-      opt.value = device.uid;
+      opt.text = printer.name;
+      opt.value = printer.uid;
       printer_select.add(opt);
       return opt;
     };
 
     //Get the default device from the application as a first step. Discovery takes longer to complete.
     BrowserPrint.getDefaultDevice("printer", function (default_device) {
-      //Add device to list of devices and to html select element
-      add_device_option(default_device);
-      RQ.barcode.selectedDevice = default_device;
+      //Add device to list of printers and to html select element
+      add_printer_option(default_device);
+      RQ.barcode.selectedPrinter = default_device;
       let selected_uid = default_device.uid;
 
       //Discover any other devices available to the application
       BrowserPrint.getLocalDevices(function (device_list) {
-        device_list.filter(d => d.uid != selected_uid).forEach(add_device_option);
-        add_device_option(dry_run_device); //Add a dry run entry last, whether or not any queries failed.
-      }, function (e) { add_device_option(dry_run_device); notify_user("error", "Unable to get local devices. Is the Zebra Browser Print service running?" + e); }, "printer");
-    }, function (e) { add_device_option(dry_run_device); notify_user("error", "Unable to get default device. Is the Zebra Browser Print service running? This is indicated by a Zebra logo icon in your Windows system tray." + e); });
+        device_list.filter(d => d.uid != selected_uid).forEach(add_printer_option);
+        add_printer_option(dry_run_printer); //Add a dry run entry last, whether or not any queries failed.
+      }, function (e) { add_printer_option(dry_run_printer); notify_user("error", "Unable to get local Zebra printers. Is the Zebra Browser Print service running?" + e); }, "printer");
+    }, function (e) { add_printer_option(dry_run_printer); notify_user("error", "No printer found. Is the Zebra Browser Print service running? This is indicated by a Zebra logo icon in your Windows system tray." + e); });
   };
   RQ.barcode.commands = {
     getConfiguration: () => send_receive_command("^XA^HH^XZ"),
@@ -282,10 +403,10 @@
     send: send_command,
     send_then_read: send_receive_command
   }
-  
+
   function send_receive_command(zpl_command) {
     notify_user("info", "Send command: " + zpl_command);
-    let dev = RQ.barcode.selectedDevice;
+    let dev = RQ.barcode.selectedPrinter;
     dev.send(zpl_command, function (success) {
       notify_user("info", "Command succeeded");
       dev.read(function (response) {
@@ -296,21 +417,21 @@
   }
   function send_command(zpl_command) {
     notify_user("info", "Send command: " + zpl_command);
-    RQ.barcode.selectedDevice.send(zpl_command,
+    RQ.barcode.selectedPrinter.send(zpl_command,
       (success) => notify_user("info", "Command succeeded"),
       (error) => notify_user("error", error));
   }
   function read_from_printer() {
-    RQ.barcode.selectedDevice.read(
+    RQ.barcode.selectedPrinter.read(
       (response) => notify_user("info", response),
       (error) => notify_user("error", error));
   }
 
 
-  function update_device_selected() {
+  function update_printer_selected() {
     let i = RQ.barcode.byId.printer_select.selectedIndex;
     if (i > 0) {
-      RQ.barcode.selectedDevice = RQ.barcode.deviceList[i];
+      RQ.barcode.selectedPrinter = RQ.barcode.printerList[i];
     }
   }
 
@@ -340,9 +461,8 @@
       log_list.prepend(log_entry);
     }
   }
-  
-  /**
-   * BarcodePicker monitors clicks, allowing user to select barcode values directly from the UI. When user clicks
+
+  /**BarcodePicker monitors clicks, allowing user to select barcode values directly from the UI. When user clicks
    * a barcode value, select_callback is called, passing the barcode value and Asset ItemId.
    * @param {function (code_string)} select_callback when a barcode is selected, the value and associated Asset ItemId 
    * is passed to this function as an object { Barcode: String, ItemId: String }
@@ -454,49 +574,235 @@
 
   };
 
+  /**Attaches all event handlers for Drag and Drop functionality.
+   * @param {Element} list_container the 'ul' or 'ol' DOM Element that contains the 'li' list elements
+   * @param {function (NodeList)} encode_items encodes (as String) the DOM Elements within the 'li's that are being dragged
+   * @param {function (String)} decode_items decodes String representation to DOM Elements that will each go into their own 'li' Element.
+   */
+  let DragDropList = (() => {
 
-  //TODO: WindowDragger doesn't belong here. Maybe put it in rq_common.
-  let WindowDragger = function (container) {
-    if (!container) {
-      container = document.body;
-    }
-    container.addEventListener("mousedown", on_drag_start, false);
-    container.addEventListener("mouseup", on_drag_end, false);
-    container.addEventListener("mousemove", on_drag, false);
+    return function attach_events(list_container, encode_items, decode_items) {
+      list_container.rq_encode_list_items = encode_items;
+      list_container.rq_decode_list_items = decode_items;
+      list_container.rq_is_source = null; // Used to determine if dragging and dropping within the same list
+      list_container.rq_is_source_and_dest = false;
+      list_container.addEventListener('dragstart', on_drag_start, false);
+      list_container.addEventListener('dragover', on_drag_over, false);
+      list_container.addEventListener('dragenter', on_drag_enter, false);
+      list_container.addEventListener('dragleave', on_drag_leave, false);
+      list_container.addEventListener('drop', on_drop, false);
+      list_container.addEventListener('dragend', on_drag_end, false);
+      list_container.addEventListener('click', on_click, false);
+      // In all future calls of event handlers, 'this' refers to list_container
+    };
 
-    let drag_item = null;
-    let currentX, currentY;
-    let initialX, initialY;
-    let offsetX = 0, offsetY = 0;
+    // https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API/Drag_operations
 
     function on_drag_start(e) {
-      initialX = e.clientX - offsetX;
-      initialY = e.clientY - offsetY;
-      if (e.target.classList.contains('rq-draghandle')) {
-        drag_item = e.target.closest('.rq-draggable');
+      // 'dragstart' only fires once, for the element where the drag was initiated.
+      // 'this' is the drag source list, currently under the mouse cursor.
+      console.log('on_drag_start ' + this.id);
+      this.rq_is_source = true;
+      this.rq_is_source_and_dest = false;
+      let drag_target = e.target.closest('li');
+      if (!drag_target.classList.contains('selected')) {
+        // drag_target is not part of previous selection, so clear it
+        this.querySelectorAll('.selected').forEach(elem => elem.classList.remove('selected'));
+        this.querySelector('.active')?.classList.remove('active');
+        drag_target.classList.add('selected');
+        drag_target.classList.add('active');
       }
+      let selected_items = this.querySelectorAll('li.selected > [draggable]');
+      let encoded_string = this.rq_encode_list_items(selected_items);
+      console.log(encoded_string);
+      e.dataTransfer.setData('text/plain', encoded_string);
+      e.dataTransfer.effectAllowed = "copyMove";
     }
-    function on_drag(e) {
-      if (drag_item) {
+
+    function validate_drag_contents(e) {
+      const isText = e.dataTransfer.types.includes('text/plain');
+      if (isText) {
+        // calling preventDefault() signals that a drop is allowed
         e.preventDefault();
-        currentX = e.clientX - initialX;
-        currentY = e.clientY - initialY;
-        offsetX = currentX;
-        offsetY = currentY;
-        //https://www.kirupa.com/html5/drag.htm
-        drag_item.style.transform = "translate3d(" + currentX + "px, " + currentY + "px, 0)";
       }
     }
-    function on_drag_end(e) {
-      //TODO: https://stackoverflow.com/questions/442404/retrieve-the-position-x-y-of-an-html-element
-      //      If dragged out of bounds, snap to an edge.
-      initialX = currentX;
-      initialY = currentY;
-      drag_item = null;
+    function loggit(e) {
+      let t = e.target.closest('li');
+      let ti = Array.from(t?.parentElement.children || []).indexOf(t);
+      let f = e.fromElement?.closest('li');
+      let fi = Array.from(f?.parentElement.children || []).indexOf(f);
+      console.log(e.type, e.target.tagName + '[' + ti + ']', e.fromElement?.tagName + '[' + fi + ']');
     }
-  };
 
+    function on_drag_enter(e) {
+      // 'dragenter' fires whenever the mouse enters the element or any of its descendants.
+      // 'this' is the list that is currently under the mouse cursor.
 
+      loggit(e);
+      validate_drag_contents(e);
+      if (e.ctrlKey) {
+        e.dataTransfer.dropEffect = "copy";
+      }
+      if (e.shiftKey) {
+        e.dataTransfer.dropEffect = "move";
+      }
+      let li_or_list = e.target.closest('li') ?? this;
+      // Chrome doesn't activate :hover state when left mouse is down, such as when dragging.
+      li_or_list.classList.add('draghover');
+    }
+
+    function on_drag_over(e) {
+      // 'dragover' fires continuously whenever the mouse is overtop the element or any of its descendants.
+      // 'this' is the list that is currently under the mouse cursor.
+      validate_drag_contents(e);
+      if (e.ctrlKey) {
+        e.dataTransfer.dropEffect = "copy";
+      }
+      if (e.shiftKey) {
+        e.dataTransfer.dropEffect = "move";
+      }
+    }
+
+    function on_drag_leave(e) {
+      // 'dragleave' fires whenever the mouse leaves the bounds of the element or any of its descendants.
+      // 'dragleave' fires immediately after an associated 'dragenter' event.
+      // 'this' is the list that the mouse cursor just left.
+      loggit(e);
+      // Remove any special styling on the drop target, taking care to not remove styling
+      // when moving between a list item and its children, as the drop target is essentially the same.
+      if (e.target === this) {
+        this.classList.remove('draghover');
+      }
+      else {
+        let entering_li = e.fromElement?.closest('li');
+        let leaving_li = e.target.closest('li');
+        if (leaving_li !== entering_li) {
+          leaving_li?.classList.remove('draghover');
+        }
+      }
+    }
+
+    function on_drop(e) {
+      // 'drop' only fires once, and only if the drop action (left mouse button released) occurs 
+      // within the bounds of the element or any of its descendants.
+      // 'this' is the drop target, the list that the mouse cursor is overtop of.
+      console.log('on_drop ' + this.id);
+      this.rq_is_source_and_dest = this.rq_is_source;
+      let drop_target = e.target.closest('li');
+      // Clear 'active' list item; we'll choose a new one later in the function
+      this.querySelector('.active')?.classList.remove('active');
+      // Use a DocumentFragment to insert many childitems in one operation
+      let fragment = document.createDocumentFragment();
+      // Check if we are dragging and dropping within the same list
+      if (this.rq_is_source_and_dest) {
+        // In which case, we should move items within the list, not delete and recreate them.
+        // We want to insert the dropped items immediately above drop_target, but that doesn't
+        // work if drop_target is a selected item, because all selected items are being moved.
+        // Set drop_target to be the next item in the list that is not selected.
+        while (drop_target?.classList.contains('selected')) {
+          drop_target = drop_target.nextElementSibling;
+        }
+        fragment.replaceChildren(...this.querySelectorAll('li.selected'));
+        // No need to change 'selected' list items in this case.
+      }
+      else {
+        // Must cleanup .draghover here because 'dragend' will not necessarily be called because this isn't source
+        RQ.barcode.byId.rq_barcode.querySelector('.draghover')?.classList.remove('draghover');
+
+        const encoded_text = e.dataTransfer.getData("text/plain");
+
+        let new_lis = this.rq_decode_list_items(encoded_text).map(item => {
+          let li = document.createElement('li');
+          li.classList.add('selected'); // All dropped items should be selected
+          li.appendChild(item);
+          return li;
+        });
+        // Deselect all previously selected  list items
+        this.querySelectorAll('.selected').forEach(elem => elem.classList.remove('selected'));
+        fragment.replaceChildren(...new_lis);
+      }
+      // Somewhat arbitrarily, we will choose the first dropped item as the active item in the list.
+      fragment.firstElementChild?.classList.add('active');
+      // if drop_target is null, elems is inserted at the end of the list
+      this.insertBefore(fragment, drop_target);
+      update_queue_count();
+      e.preventDefault();
+    }
+
+    function on_drag_end(e) {
+      // 'dragend' only fires once, and signals the end of the drag-drop operation. 
+      // If 'drop' is handled by an element under the mouse cursor, 'dragend' fires immediately after.
+      // 'this' is the drag source list, the same as was in 'dragstart'.
+      console.log('on_drag_end ' + e.dataTransfer.dropEffect + ' ' + this.id);
+
+      RQ.barcode.byId.rq_barcode.querySelector('.draghover')?.classList.remove('draghover');
+      let de = e.dataTransfer.dropEffect;
+      if (de == "move") {
+        // If we are moving items within the same list, do not delete them
+        if (!this.rq_is_source_and_dest) {
+          // Otherwise, if a move command has succeeded, delete the items that were moved.
+          this.querySelectorAll('li.selected').forEach(x => x.remove());
+          update_queue_count();
+        }
+      }
+      // Reset flags in preparation for next drag and drop operation
+      this.rq_is_source = false;
+      this.rq_is_source_and_dest = false;
+      if (de == "none" || de == "copy") { //drag was cancelled
+        return;
+      }
+    }
+
+    function on_click(e) {
+      console.log('on_click ' + this.id);
+      let clicked_item = e.target.closest("li");
+      if (clicked_item) {
+        let active_item = this.querySelector('.active');
+        if (active_item && e.shiftKey) { // Select all items inclusive and between active_item and clicked_item
+          let cur_item = undefined;
+          let stop_item = undefined;
+          // Figure out which element comes first in the list
+          for (cur_item = this.firstElementChild; cur_item; cur_item = cur_item.nextElementSibling) {
+            if (cur_item == active_item) {
+              stop_item = clicked_item;
+              break;
+            }
+            else if (cur_item == clicked_item) {
+              stop_item = active_item;
+              break;
+            }
+          }
+
+          if (stop_item) {
+            // select all items until (and including) stop_item
+            for (; cur_item; cur_item = cur_item.nextElementSibling) {
+              cur_item.classList.add('selected');
+              if (cur_item == stop_item) {
+                break;
+              }
+            }
+          }
+        }
+        else if (e.ctrlKey) {
+          clicked_item.classList.toggle('selected');
+        }
+        else {
+          this.querySelectorAll('.selected')
+            .forEach(item => item.classList.remove('selected'));
+          clicked_item.classList.toggle('selected');
+        }
+        // There is only ever one active item and it is the one that was clicked last, except for shift+click.
+        if (!e.shiftKey) {
+          active_item?.classList.remove('active');
+          clicked_item.classList.add('active');
+        }
+      }
+      else { // Clicked within the list element, but did not click on any particular item. Clear selection.
+        this.querySelectorAll('.selected')
+          .forEach(item => item.classList.remove('selected'));
+      }
+    }
+  })();
 
 })(window.RentalQuirks);
 

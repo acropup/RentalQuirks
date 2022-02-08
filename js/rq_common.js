@@ -38,4 +38,49 @@ function toTitleCase(inputText) {
     return result;
 }
 
+/**
+ * Call this on any containing Element to allow descendants of class 'rq-draggable' to be moved 
+ * by the mouse when an Element of class 'rq-draghandle' within them is clicked and dragged.
+ * @param {Element} container the context in which mouse events are monitored for dragging elements. Defaults to document.body.
+ */
+let WindowDragger = function (container) {
+  if (!container) {
+    container = document.body;
+  }
+  container.addEventListener("mousedown", on_drag_start, false);
+  container.addEventListener("mouseup", on_drag_end, false);
+  container.addEventListener("mousemove", on_drag, false);
+
+  let drag_item = null;
+  let currentX, currentY;
+  let initialX, initialY;
+  let offsetX = 0, offsetY = 0;
+
+  function on_drag_start(e) {
+    initialX = e.clientX - offsetX;
+    initialY = e.clientY - offsetY;
+    if (e.target.classList.contains('rq-draghandle')) {
+      drag_item = e.target.closest('.rq-draggable');
+    }
+  }
+  function on_drag(e) {
+    if (drag_item) {
+      e.preventDefault();
+      currentX = e.clientX - initialX;
+      currentY = e.clientY - initialY;
+      offsetX = currentX;
+      offsetY = currentY;
+      //https://www.kirupa.com/html5/drag.htm
+      drag_item.style.transform = "translate3d(" + currentX + "px, " + currentY + "px, 0)";
+    }
+  }
+  function on_drag_end(e) {
+    //TODO: https://stackoverflow.com/questions/442404/retrieve-the-position-x-y-of-an-html-element
+    //      If dragged out of bounds, snap to an edge.
+    initialX = currentX;
+    initialY = currentY;
+    drag_item = null;
+  }
+};
+
 const LOG = console.log.bind(console);
