@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.6
+@version        0.1.7
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -181,6 +181,10 @@
   #rq-barcode .flexcolumn {
     flex: 1 0 240px;
   }
+  /* Lower the top column headers to make space for the Picker button */
+  html.theme-material #rq-barcode .flexcolumn :first-child .fwform-section-title {
+    margin-top: 0.7em;
+  }
   #rq-barcode.hidden {
       animation-name: fadeOut;
   }
@@ -189,9 +193,9 @@
   
   #barcode-queue {
     list-style-type: none;
-    margin: .4em 1px;
+    margin: .4em 0px;
     border: 1px solid #e0e0e0;
-    width: 10em;
+    width: 8.55em;
     height: 25em;
     overflow-y: auto;
     overflow-x: hidden;
@@ -241,11 +245,14 @@
   #barcode-queue > li > div[data-is-valid=false] {
     background-color: #c08e4b;
     border-color: rgb(136, 97, 0);
+    xborder-width: 4px;
     font-style: italic;
   }
   #barcode-queue > li.selected > div[data-is-valid=false] {
     background-color: #2a6195;
     border-color: #0a16af;
+    xborder-width: 4px;
+    font-style: italic;
   }
   /* Show user where dropped item will be inserted */
   #barcode-queue.draghover:after,
@@ -289,6 +296,15 @@
     cursor: grab;
   }
   
+  #barcode-picker-btn {
+    position: absolute;
+    left: 8.5em;
+    top: 3.8em;
+    transition: color 0.2s ease;
+  }
+  #barcode-picker-btn.picking {
+    color: rgb(255,180,0);
+  }
   #barcode-picker-btn:before {
     content: '\e1b3';
     font-family: 'Material Icons';
@@ -299,11 +315,28 @@
     font-size: 24px;
     vertical-align: middle;
   }
-  #barcode-picker-btn {
-    transition: color 0.2s ease;
+  #queue-btn {
+    height: 2.2em;
+    line-height: 2.2em;
+    margin-top: -1px;
   }
-  #barcode-picker-btn.picking {
-    color: rgb(255,180,0);
+  #activate-btn:before,
+  #deactivate-btn:before {
+    font-family: 'Material Icons';
+    font-size: 24px;
+    display: inline-block;
+    letter-spacing: 0.2em;
+    margin-top: -0.15em;
+    vertical-align: middle;
+  }
+  #activate-btn:before {
+    content: '\e892';
+    transform: scaleX(-1.25) scaleY(1.25);
+    margin-right: .2em;
+    margin-left: -0.2em;
+  }
+  #deactivate-btn:before {
+    content: '\e14a';
   }
 
 .barcode-highlights .fwformfield[data-datafield="BarCode"] input.fwformfield-value, /* Editable barcode field on Asset forms */

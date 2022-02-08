@@ -88,15 +88,19 @@
         <div class="fwcontrol fwcontainer fwform-section" data-control="FwContainer">
           <div id="barcode-picker-btn" class="fwformcontrol" data-type="button">Picker</div>
           <div class="fwform-section-title">Print Queue</div>
-            <div class="fwform-section-body"><div id="queue-btn" class="fwformcontrol" data-type="button" style="display: inline-flex; flex-wrap: wrap; align-content: center; height: 2.2em; margin: -1px 0 0 5px; float: right;">Add</div>
-            <div class="fwformfield" data-type="text"><div class="fwformfield-control">
-              <input id="text-entry" type="text" class="fwformfield-value">
-            </div></div>
-            <ul id="barcode-queue">
-            </ul>
-            <div id="print-btn" class="fwformcontrol" data-type="button">Print Next</div>
-            <div id="activate-btn" class="fwformcontrol" data-type="button">Activate Barcodes</div>
-            <div id="deactivate-btn" class="fwformcontrol" data-type="button">Deactivate Barcodes</div>
+          <div class="fwform-section-body" style="display: flex; flex-direction: row; gap: 5px;">
+            <div style="flex-direction: column;">
+              <div class="fwformfield" data-type="text"><div class="fwformfield-control">
+              <input id="text-entry" type="text" class="fwformfield-value"></div></div>
+              <ul id="barcode-queue"></ul>
+              <div id="print-btn" class="fwformcontrol" data-type="button">Print Next</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; width: 4em;">
+              <div id="queue-btn" class="fwformcontrol" data-type="button">Add</div>
+              <div style="letter-spacing: 0.8px;font-size: 10px; text-transform: uppercase; text-align: center; padding-top: 0.5em; border-top: 1px #e0e0e0 solid;">Activate / Deactivate Barcodes</div>
+              <div id="activate-btn" class="fwformcontrol" data-type="button">Activate Barcodes</div>
+              <div id="deactivate-btn" class="fwformcontrol" data-type="button">Deactivate Barcodes</div>
+            </div>
           </div>
         </div>
       </div>
