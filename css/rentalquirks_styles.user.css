@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.5
+@version        0.1.6
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -200,9 +200,10 @@
   #barcode-queue > li {
     height: 2em;
     width: 100%;
-    padding-top: .2em;
-    padding-bottom: .2em;
-    transition: padding .2s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    padding-top: .125em;
+    padding-bottom: .125em;
+    border-top: 0px transparent solid;
+    transition: border-top .1s linear;
   }
   #barcode-queue > li > div {
     box-sizing: border-box;
@@ -219,6 +220,37 @@
     background-color: rgb(255 180 0 / 65%);
     border: 2px solid rgb(225, 160, 0);
     border-radius: 10px;
+  }
+  /* Give user a place to drop after the last item */
+  #barcode-queue:after {
+    content: '';
+    display: flex;
+    transition: border-top .1s linear;
+    border-top: 0px transparent solid;
+    height: 1em;
+    width: 100%;
+  }
+  
+  #barcode-queue > li.selected > div {
+    background-color: #46f;
+    border-color: #12f;
+  }
+  #barcode-queue > li.active > div {
+    border-color: #000;
+  }
+  #barcode-queue > li > div[data-is-valid=false] {
+    background-color: #c08e4b;
+    border-color: rgb(136, 97, 0);
+    font-style: italic;
+  }
+  #barcode-queue > li.selected > div[data-is-valid=false] {
+    background-color: #2a6195;
+    border-color: #0a16af;
+  }
+  /* Show user where dropped item will be inserted */
+  #barcode-queue.draghover:after,
+  #barcode-queue > li.draghover {
+    border-top: .5em #01579b solid;
   }
   
   #barcode-log.fwform-section-body {
