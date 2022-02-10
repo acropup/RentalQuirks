@@ -91,7 +91,7 @@
           <div class="fwform-section-body" style="display: flex; flex-direction: row; gap: 5px;">
             <div style="flex-direction: column;">
               <div class="fwformfield" data-type="text"><div class="fwformfield-control">
-              <input id="text-entry" type="text" class="fwformfield-value"></div></div>
+              <input id="text-entry" type="text" class="fwformfield-value" autocomplete="off" list="autocompleteOff"></div></div>
               <ul id="barcode-queue"></ul>
               <div id="print-btn" class="fwformcontrol" data-type="button">Print Next</div>
             </div>
