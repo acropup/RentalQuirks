@@ -32,7 +32,12 @@
       name: "Large",
       description: "1.0in x 2.0in",
       validate: (code) => { return /^\d{6}$/.test(code); },
-      command: (code, quantity = 1) => `^XA^XFE:BWL2IN.GRF^FN1^FD${code}^FS^PQ,,${quantity},Y^XZ`
+      command: (code, quantity = 1) => `^XA^SS,,,229^PW430~TA-012^LT12^LS12^LH0,0~JSN^MNW^MTT^MMT^PON^PMN^JMA^PR2,2~SD15^JUS^LRN^CI28^XZ
+      ^XA
+      ^FT24,48^A0,36,36^FB358,1,0,C^FDBetter Way Lighting\\&^FS
+      ^FT67,146^BY4,3,80^BCN,,N,N^FD>;${code}^FS
+      ^FT24,182^FP,2^FB358,1,,C^AS^FD${code}\\&^FS
+      ^XZ`
     }
   ];
 
@@ -96,10 +101,10 @@
               <div id="print-btn" class="fwformcontrol" data-type="button">Print Next</div>
             </div>
             <div style="display: flex; flex-direction: column; gap: 6px; width: 4em;">
-              <div id="queue-btn" class="fwformcontrol" data-type="button">Add</div>
+              <div id="queue-btn" class="fwformcontrol" data-type="button" title="[Enter]&#009; Add to queue&#013;[Ctrl+Enter] Print immediately">Add</div>
               <div style="letter-spacing: 0.8px;font-size: 10px; text-transform: uppercase; text-align: center; padding-top: 0.5em; border-top: 1px #e0e0e0 solid;">Activate / Deactivate Barcodes</div>
-              <div id="activate-btn" class="fwformcontrol" data-type="button">Activate Barcodes</div>
-              <div id="deactivate-btn" class="fwformcontrol" data-type="button">Deactivate Barcodes</div>
+              <div id="activate-btn" class="fwformcontrol" data-type="button" title="Activate Barcodes"></div>
+              <div id="deactivate-btn" class="fwformcontrol" data-type="button" title="Deactivate Barcodes"></div>
             </div>
           </div>
         </div>
