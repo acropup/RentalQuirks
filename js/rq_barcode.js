@@ -19,13 +19,15 @@
   RQ.barcode.addBarcodeButton = addBarcodeButton;
   RQ.barcode.printerList = [];
   RQ.barcode.selectedPrinter;
+  RQ.barcode.selectedBarcodeType;
+  RQ.barcode.selectedPrintCopies;
   //Provide a dummy printer entry so that people can practice with the UI without sending prints by accident.
   const dry_run_printer = { name: "Dry run - print disabled", uid: -1 };
   RQ.barcode.barcodeTypes = [
     {
       name: "Small",
       description: "0.5in x 1.0in",
-      validate: (code) => { return /^\d{6}$/.test(code); },
+      validate: (code) => { return /^\d{5}$/.test(code); },
       command: (code, quantity = 1) => `^XA^XFE:BWL1IN.GRF^FN1^FD${code}^FS^PQ,,${quantity},Y^XZ`
     },
     {
@@ -98,7 +100,8 @@
               <div class="fwformfield" data-type="text"><div class="fwformfield-control">
               <input id="text-entry" type="text" class="fwformfield-value" autocomplete="off" list="autocompleteOff"></div></div>
               <ul id="barcode-queue"></ul>
-              <div id="print-btn" class="fwformcontrol" data-type="button">Print Next</div>
+              <div id="print-one-btn" class="fwformcontrol" data-type="button">Print Next</div>
+              <div id="print-all-btn" class="fwformcontrol" data-type="button">Print All</div>
             </div>
             <div style="display: flex; flex-direction: column; gap: 6px; width: 4em;">
               <div id="queue-btn" class="fwformcontrol" data-type="button" title="[Enter]&#009; Add to queue&#013;[Ctrl+Enter] Print immediately">Add</div>
@@ -178,13 +181,25 @@
     Array.from(document.querySelectorAll('#rq-barcode [id]')).forEach(elem => byId[elem.id.replaceAll('-', '_')] = elem);
 
     let close_btn = barcode_ui.querySelector('.close-modal');
-
     close_btn.addEventListener('click', () => barcode_ui.classList.toggle('hidden'));
     byId.text_entry.addEventListener('keydown', text_entry_keydown);
     byId.queue_btn.addEventListener('click', click_queue_btn);
-    byId.print_btn.addEventListener('click', (e) => print_next_barcode());
+    byId.print_one_btn.addEventListener('click', (e) => print_next_barcode());
+    byId.print_all_btn.addEventListener('click', (e) => print_all_barcodes());
     byId.printer_select.addEventListener('change', update_printer_selected);
     byId.printer_refresh_btn.addEventListener('click', refresh_printer_list);
+
+    let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x => x.checked)[0].value;
+    RQ.barcode.selectedBarcodeType = RQ.barcode.barcodeTypes[type_index];
+    add_radio_change_event("barcode-type", (e) => {
+      RQ.barcode.selectedBarcodeType = RQ.barcode.barcodeTypes[e.target.value];
+      validate_print_queue();
+    });
+    RQ.barcode.selectedPrintCopies = Array.from(document.getElementsByName('print-copies')).filter(x => x.checked)[0].value;
+    add_radio_change_event("print-copies", (e) => {
+      RQ.barcode.selectedPrintCopies = e.target.value;
+    });
+
     let barcode_selector = BarcodePicker(queue_barcode);
     byId.barcode_picker_btn.addEventListener('click', () => barcode_selector.toggle_enabled());
     byId.activate_btn.addEventListener('click', () => {
@@ -214,8 +229,7 @@
       }).join('\n');
     };
     let decode_li = function (encode_string) {
-      let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x => x.checked)[0].value;
-      let validate = RQ.barcode.barcodeTypes[type_index].validate;
+      let validate = RQ.barcode.selectedBarcodeType.validate;
 
       let entries = encode_string.split(/\s+/).filter(Boolean);
       return entries.map(str => {
@@ -234,6 +248,19 @@
     DragDropList(byId.barcode_log, encode_li, decode_li);
   }
 
+  function add_radio_change_event(radio_name, change_event_handler) {
+    let radio_options = Array.from(document.querySelectorAll(`input[type="radio"][name="${radio_name}"]`));
+    radio_options.forEach(radio => radio.addEventListener('change', change_event_handler));
+  }
+
+  function validate_print_queue() {
+    let validate = RQ.barcode.selectedBarcodeType.validate;
+    Array.from(RQ.barcode.byId.barcode_queue.children).forEach(list_item => {
+      let div = list_item.firstElementChild;
+      div.dataset.isValid = validate(div.textContent);
+    });
+  }
+
   /**Takes an array of (presumably deactivated) items from the barcode queue, and 
    * calls the RW API to update each item's barcode with the 'X' identifier removed.
    * Barcodes are activated when an Asset without a barcode is recovered, so that
@@ -241,8 +268,7 @@
    * @param {[Element]} queue_items the DOM Elements in the barcode queue that need their barcodes activated
    */
   function activate_barcodes(queue_items) {
-    let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x => x.checked)[0].value;
-    let validate = RQ.barcode.barcodeTypes[type_index].validate;
+    let validate = RQ.barcode.selectedBarcodeType.validate;
     queue_items.forEach(queue_item => {
       // Validate and package updates for each item
       let barcode = queue_item.textContent;
@@ -276,8 +302,7 @@
    * @param {[Element]} queue_items the DOM Elements in the barcode queue that need their barcodes deactivated
    */
   function deactivate_barcodes(queue_items) {
-    let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x => x.checked)[0].value;
-    let validate = RQ.barcode.barcodeTypes[type_index].validate;
+    let validate = RQ.barcode.selectedBarcodeType.validate;
     queue_items.forEach(queue_item => {
       let barcode = queue_item.textContent;
       let item_id = queue_item.dataset.itemid;
@@ -300,9 +325,7 @@
   }
 
   function queue_barcode(barcode_info) {
-    let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x => x.checked)[0].value;
-    let validate = RQ.barcode.barcodeTypes[type_index].validate;
-
+    let validate = RQ.barcode.selectedBarcodeType.validate;
     let new_item = document.createElement('li');
     let inner_div = document.createElement('div');
     inner_div.setAttribute('draggable', 'true');
@@ -359,9 +382,8 @@
       next_barcode = next_item?.textContent;
     }
 
-    let print_copies = Array.from(document.getElementsByName('print-copies')).filter(x => x.checked)[0].value;
-    let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x => x.checked)[0].value;
-    let barcode_type = RQ.barcode.barcodeTypes[type_index];
+    let print_copies = RQ.barcode.selectedPrintCopies;
+    let barcode_type = RQ.barcode.selectedBarcodeType;
     if (barcode_type.validate(next_barcode)) {
       notify_user(`Printing ${print_copies} of ${next_barcode} in style ${barcode_type.name}`);
       if (RQ.barcode.selectedPrinter != dry_run_printer) {

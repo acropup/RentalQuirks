@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.7
+@version        0.1.8
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -337,6 +337,10 @@
  }
  #deactivate-btn:before {
    content: '\e14a';
+ }
+ #print-all-btn {
+   position: absolute;
+   margin-left: 0.3em;
  }
 
 .barcode-highlights .fwformfield[data-datafield="BarCode"] input.fwformfield-value, /* Editable barcode field on Asset forms */
