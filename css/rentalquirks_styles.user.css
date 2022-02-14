@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.8
+@version        0.1.9
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -245,13 +245,11 @@
  #barcode-queue > li > div[data-is-valid=false] {
    background-color: #c08e4b;
    border-color: rgb(136, 97, 0);
-   xborder-width: 4px;
    font-style: italic;
  }
  #barcode-queue > li.selected > div[data-is-valid=false] {
    background-color: #2a6195;
    border-color: #0a16af;
-   xborder-width: 4px;
    font-style: italic;
  }
  /* Show user where dropped item will be inserted */
@@ -263,8 +261,13 @@
  #barcode-log.fwform-section-body {
    margin-top: 0.4em;
    border: 1px solid #e0e0e0;
-   max-height: 30em;
-   overflow-y: scroll;
+   min-height: 5em;
+   max-height: 16.8em;
+   overflow-y: auto;
+   word-break: break-word;
+   /* column-reverse causes scrolling to stick to bottom like you'd want a log to */
+   display: flex;
+   flex-direction: column-reverse;
  }
  #barcode-log .logentry {
    font: .8em/.9em monospace;
