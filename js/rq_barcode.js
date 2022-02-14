@@ -106,7 +106,7 @@
               <div class="fwformfield" data-type="text"><div class="fwformfield-control">
               <input id="text-entry" type="text" class="fwformfield-value" autocomplete="off" list="autocompleteOff"></div></div>
               <ul id="barcode-queue"></ul>
-              <div id="print-one-btn" class="fwformcontrol" data-type="button">Print Next</div>
+              <div id="print-one-btn" class="fwformcontrol" data-type="button" title="[Ctrl+Click] to print just one copy while leaving the barcode in the queue.">Print Next</div>
               <div id="print-all-btn" class="fwformcontrol" data-type="button">Print All</div>
             </div>
             <div style="display: flex; flex-direction: column; gap: 6px; width: 4em;">
@@ -190,7 +190,7 @@
     close_btn.addEventListener('click', () => barcode_ui.classList.toggle('hidden'));
     byId.text_entry.addEventListener('keydown', text_entry_keydown);
     byId.queue_btn.addEventListener('click', click_queue_btn);
-    byId.print_one_btn.addEventListener('click', (e) => print_next_barcode());
+    byId.print_one_btn.addEventListener('click', (e) => print_next_barcode(undefined, e.ctrlKey));
     byId.print_all_btn.addEventListener('click', (e) => print_all_barcodes());
     byId.printer_select.addEventListener('change', update_printer_selected);
     byId.printer_refresh_btn.addEventListener('click', refresh_printer_list);
@@ -382,18 +382,22 @@
   }
 
   /**Prints the barcode value in next_barcocde, or if none supplied,
-   * prints and removes the next barcode in the queue.
+   * prints and removes the next barcode in the queue. If event.ctrlKey is passed
+   * to print_one_copy, a Ctrl+Click will only print one copy, and will not remove
+   * the barcode from the queue.
    * @param {String} next_barcode the next barcode to print, or undefined
+   * @param {Boolean} print_one_copy indicates whether only one copy should be printed.
+   *                                 If true, the printed barcode stays in the queue.
    * @returns true if print succeeds, false if print failed or if barcode was invalid
    */
-  function print_next_barcode(next_barcode = undefined) {
+  function print_next_barcode(next_barcode = undefined, print_one_copy = false) {
     let next_item;
     if (!next_barcode) {
       next_item = RQ.barcode.byId.barcode_queue.lastElementChild;
       next_barcode = next_item?.textContent;
     }
 
-    let print_copies = RQ.barcode.selectedPrintCopies;
+    let print_copies = print_one_copy ? 1 : RQ.barcode.selectedPrintCopies;
     let barcode_type = RQ.barcode.selectedBarcodeType;
     if (barcode_type.validate(next_barcode)) {
       notify_user(`Printing ${print_copies} of ${next_barcode} in style ${barcode_type.name}`);
@@ -401,11 +405,18 @@
         let cmd_string = barcode_type.print_command(next_barcode, print_copies);
         send_receive_command(cmd_string);
       }
-      next_item?.remove();
+      if (!print_one_copy) {
+        next_item?.remove();
+      }
       return true;
     }
     else {
-      notify_user('error', `Value ${next_barcode} is invalid for ${barcode_type.name} barcodes.`);
+      if (next_barcode) {
+        notify_user('error', `Value ${next_barcode} is invalid for ${barcode_type.name} barcodes.`);
+      }
+      else {
+        notify_user('error', "No barcode to print.");
+      }
       return false;
     }
   }
