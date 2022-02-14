@@ -17,25 +17,31 @@
   RQ.barcode = {};
   RQ.barcode.byId = {}; //Will contain references to all DOM elements that have ID specified.
   RQ.barcode.addBarcodeButton = addBarcodeButton;
-  RQ.barcode.printerList = [];
+  RQ.barcode.printerList = []; //These properties are all assigned values during init_ui_elements()
   RQ.barcode.selectedPrinter;
   RQ.barcode.selectedBarcodeType;
   RQ.barcode.selectedPrintCopies;
   //Provide a dummy printer entry so that people can practice with the UI without sending prints by accident.
-  const dry_run_printer = { name: "Dry run - print disabled", uid: -1 };
+  const dry_run_printer = {
+    name: "Dry run - print disabled",
+    uid: -1,
+    send: (zpl_command) => notify_user("info", "Pretend send: " + zpl_command),
+    read: () => notify_user("info", "Pretend read.")
+  };
   RQ.barcode.barcodeTypes = [
     {
       name: "Small",
       description: "0.5in x 1.0in",
-      validate: (code) => { return /^\d{5}$/.test(code); },
-      command: (code, quantity = 1) => `^XA^XFE:BWL1IN.GRF^FN1^FD${code}^FS^PQ,,${quantity},Y^XZ`
+      validate: (code) => { return /^\d{5}$/.test(code); }, //TODO: validation should be for 6 digits, but it's currently 5 for debugging purposes
+      setup_command: () => "", //TODO: Fill this out
+      print_command: (code, quantity = 1) => `^XA^XFE:BWL1IN.GRF^FN1^FD${code}^FS^PQ,,${quantity},Y^XZ`
     },
     {
       name: "Large",
       description: "1.0in x 2.0in",
       validate: (code) => { return /^\d{6}$/.test(code); },
-      command: (code, quantity = 1) => `^XA^SS,,,229^PW430~TA-012^LT12^LS12^LH0,0~JSN^MNW^MTT^MMT^PON^PMN^JMA^PR2,2~SD15^JUS^LRN^CI28^XZ
-      ^XA
+      setup_command: () => "^XA^SS,,,229^PW430~TA-012^LT12^LS12^LH0,0~JSN^MNW^MTT^MMT^PON^PMN^JMA^PR2,2~SD15^JUS^LRN^CI28^XZ",
+      print_command: (code, quantity = 1) => `^XA
       ^FT24,48^A0,36,36^FB358,1,0,C^FDBetter Way Lighting\\&^FS
       ^FT67,146^BY4,3,80^BCN,,N,N^FD>;${code}^FS
       ^FT24,182^FP,2^FB358,1,,C^AS^FD${code}\\&^FS
@@ -189,16 +195,21 @@
     byId.printer_select.addEventListener('change', update_printer_selected);
     byId.printer_refresh_btn.addEventListener('click', refresh_printer_list);
 
-    let type_index = Array.from(document.getElementsByName('barcode-type')).filter(x => x.checked)[0].value;
-    RQ.barcode.selectedBarcodeType = RQ.barcode.barcodeTypes[type_index];
     add_radio_change_event("barcode-type", (e) => {
       RQ.barcode.selectedBarcodeType = RQ.barcode.barcodeTypes[e.target.value];
       validate_print_queue();
+      // Run setup so we're ready to print the newly-selected type of barcodes
+      send_receive_command(RQ.barcode.selectedBarcodeType.setup_command());
     });
-    RQ.barcode.selectedPrintCopies = Array.from(document.getElementsByName('print-copies')).filter(x => x.checked)[0].value;
+    // Set default barcode type
+    let default_barcode_type = barcode_ui.querySelector('input[type="radio"][name="barcode-type"]:checked');
+    default_barcode_type.dispatchEvent(new Event('change'));
+
     add_radio_change_event("print-copies", (e) => {
       RQ.barcode.selectedPrintCopies = e.target.value;
     });
+    // Set default print copies
+    RQ.barcode.selectedPrintCopies = barcode_ui.querySelector('input[type="radio"][name="print-copies"]:checked').value;
 
     let barcode_selector = BarcodePicker(queue_barcode);
     byId.barcode_picker_btn.addEventListener('click', () => barcode_selector.toggle_enabled());
@@ -387,7 +398,7 @@
     if (barcode_type.validate(next_barcode)) {
       notify_user(`Printing ${print_copies} of ${next_barcode} in style ${barcode_type.name}`);
       if (RQ.barcode.selectedPrinter != dry_run_printer) {
-        let cmd_string = barcode_type.command(next_barcode, print_copies);
+        let cmd_string = barcode_type.print_command(next_barcode, print_copies);
         send_receive_command(cmd_string);
       }
       next_item?.remove();
@@ -411,6 +422,8 @@
       opt.text = printer.name;
       opt.value = printer.uid;
       printer_select.add(opt);
+      RQ.barcode.selectedPrinter ??= printer;
+      update_printer_selected();
       return opt;
     };
 
@@ -418,15 +431,14 @@
     BrowserPrint.getDefaultDevice("printer", function (default_device) {
       //Add device to list of printers and to html select element
       add_printer_option(default_device);
-      RQ.barcode.selectedPrinter = default_device;
       let selected_uid = default_device.uid;
 
       //Discover any other devices available to the application
       BrowserPrint.getLocalDevices(function (device_list) {
         device_list.filter(d => d.uid != selected_uid).forEach(add_printer_option);
         add_printer_option(dry_run_printer); //Add a dry run entry last, whether or not any queries failed.
-      }, function (e) { add_printer_option(dry_run_printer); notify_user("error", "Unable to get local Zebra printers. Is the Zebra Browser Print service running?" + e); }, "printer");
-    }, function (e) { add_printer_option(dry_run_printer); notify_user("error", "No printer found. Is the Zebra Browser Print service running? This is indicated by a Zebra logo icon in your Windows system tray." + e); });
+      }, function (e) { notify_user("error", "Unable to get local Zebra printers. Is the Zebra Browser Print service running?" + e); add_printer_option(dry_run_printer); }, "printer");
+    }, function (e) { notify_user("error", "No printer found. Is the Zebra Browser Print service running? This is indicated by a Zebra logo icon in your Windows system tray." + e); add_printer_option(dry_run_printer); });
   };
   RQ.barcode.commands = {
     getConfiguration: () => send_receive_command("^XA^HH^XZ"),
@@ -436,8 +448,11 @@
   }
 
   function send_receive_command(zpl_command) {
-    notify_user("info", "Send command: " + zpl_command);
     let dev = RQ.barcode.selectedPrinter;
+    if (!dev) return;
+    if (dev != dry_run_printer) {
+      notify_user("info", "Send command: " + zpl_command);
+    }
     dev.send(zpl_command, function (success) {
       notify_user("info", "Command succeeded");
       dev.read(function (response) {
@@ -461,8 +476,10 @@
 
   function update_printer_selected() {
     let i = RQ.barcode.byId.printer_select.selectedIndex;
-    if (i > 0) {
+    if (i >= 0) {
       RQ.barcode.selectedPrinter = RQ.barcode.printerList[i];
+      // Run setup on the new printer
+      send_receive_command(RQ.barcode.selectedBarcodeType.setup_command());
     }
   }
 
@@ -489,6 +506,9 @@
       log_entry.className = 'logentry ' + log_type;
       log_entry.textContent = message;
       log_entry.dataset.timestamp = (new Date).toLocaleTimeString();
+      
+      // In CSS with log_list style="display: flex; flex-direction: column-reverse;"
+      // prepend() looks like append, and scrolling sticks to bottom like you'd want for a log.
       log_list.prepend(log_entry);
     }
   }
