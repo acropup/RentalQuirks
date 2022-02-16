@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.9
+@version        0.2.0
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -272,6 +272,11 @@
  #barcode-log .logentry {
    font: .8em/.9em monospace;
    padding: .25em 0;
+   transition: background-color linear .5s;
+ }
+ #barcode-log .logentry.pending {
+   font-style: italic;
+   background-color: #2196f3;
  }
  #barcode-log .logentry.warning {
    font-style: italic;

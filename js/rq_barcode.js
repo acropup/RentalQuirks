@@ -40,7 +40,7 @@
       name: "Large",
       description: "1.0in x 2.0in",
       validate: (code) => { return /^\d{6}$/.test(code); },
-      setup_command: () => "^XA^SS,,,229^PW430~TA-012^LT12^LS12^LH0,0~JSN^MNW^MTT^MMT^PON^PMN^JMA^PR2,2~SD15^JUS^LRN^CI28^XZ",
+      setup_command: () => "^XA^SS,,,214^PW430~TA-012^LT12^LS12^LH0,0~JSN^MNW^MTT^MMT^PON^PMN^JMA^PR2,2~SD15^JUS^LRN^CI28^XZ",
       print_command: (code, quantity = 1) => `^XA
       ^FT24,48^A0,36,36^FB358,1,0,C^FDBetter Way Lighting\\&^FS
       ^FT67,146^BY4,3,80^BCN,,N,N^FD>;${code}^FS
@@ -199,7 +199,7 @@
       RQ.barcode.selectedBarcodeType = RQ.barcode.barcodeTypes[e.target.value];
       validate_print_queue();
       // Run setup so we're ready to print the newly-selected type of barcodes
-      send_receive_command(RQ.barcode.selectedBarcodeType.setup_command());
+      send_command(RQ.barcode.selectedBarcodeType.setup_command());
     });
     // Set default barcode type
     let default_barcode_type = barcode_ui.querySelector('input[type="radio"][name="barcode-type"]:checked');
@@ -403,7 +403,7 @@
       notify_user(`Printing ${print_copies} of ${next_barcode} in style ${barcode_type.name}`);
       if (RQ.barcode.selectedPrinter != dry_run_printer) {
         let cmd_string = barcode_type.print_command(next_barcode, print_copies);
-        send_receive_command(cmd_string);
+        send_command(cmd_string);
       }
       if (!print_one_copy) {
         next_item?.remove();
@@ -460,12 +460,13 @@
 
   function send_receive_command(zpl_command) {
     let dev = RQ.barcode.selectedPrinter;
+    let log_entry;
     if (!dev) return;
     if (dev != dry_run_printer) {
-      notify_user("info", "Send command: " + zpl_command);
+      log_entry = notify_user("info", "Send command: " + zpl_command, "pending");
     }
     dev.send(zpl_command, function (success) {
-      notify_user("info", "Command succeeded");
+      log_entry?.classList.remove("pending");
       dev.read(function (response) {
         response ||= "No response";
         notify_user("info", response);
@@ -473,9 +474,9 @@
     }, (error) => notify_user("error", error));
   }
   function send_command(zpl_command) {
-    notify_user("info", "Send command: " + zpl_command);
+    let log_entry = notify_user("info", "Send command: " + zpl_command, "pending");
     RQ.barcode.selectedPrinter.send(zpl_command,
-      (success) => notify_user("info", "Command succeeded"),
+      (success) => log_entry?.classList.remove("pending"),
       (error) => notify_user("error", error));
   }
   function read_from_printer() {
@@ -494,7 +495,7 @@
     }
   }
 
-  function notify_user(/*optional*/ log_type, message) {
+  function notify_user(/*optional*/ log_type, message, class_list = "") {
     switch (log_type) {
       case "info": console.log(message); break;
       case "warning": console.warn(message); break;
@@ -514,13 +515,14 @@
     let log_list = RQ.barcode.byId.barcode_log;
     if (log_list) {
       let log_entry = document.createElement('div');
-      log_entry.className = 'logentry ' + log_type;
+      log_entry.className = class_list + ' logentry ' + log_type;
       log_entry.textContent = message;
       log_entry.dataset.timestamp = (new Date).toLocaleTimeString();
       
       // In CSS with log_list style="display: flex; flex-direction: column-reverse;"
       // prepend() looks like append, and scrolling sticks to bottom like you'd want for a log.
       log_list.prepend(log_entry);
+      return log_entry;
     }
   }
 
