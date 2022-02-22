@@ -26,7 +26,18 @@
     name: "Dry run - print disabled",
     uid: -1,
     send: (zpl_command) => notify_user("info", "Pretend send: " + zpl_command),
-    read: () => notify_user("info", "Pretend read.")
+    read: () => notify_user("info", "Pretend read."),
+    // Configuration responses start with \x02 (STX), end with \x03 (ETX), and every line reserves
+    // the first 20 chars for the value, and the rest for the name. Acutal configuration responses
+    // have many more properties (Send ^XA^HH^XZ for an example), but as of Zebra library v1.0.216,
+    // the library doesn't parse any more than what's specified below.
+    fake_configuration: String.fromCharCode(2) + `
+25.0                DARKNESS
+0 IPS               PRINT SPEED
+0                   PRINT WIDTH
+0                   LABEL LENGTH
+0                   LINK-OS VERSION
+0.0.0.0 <-          FIRMWARE` + String.fromCharCode(3)
   };
   RQ.barcode.barcodeTypes = [
     {
@@ -112,7 +123,7 @@
             </div>
             <div style="display: flex; flex-direction: column; gap: 6px; width: 4em;">
               <div id="queue-btn" class="fwformcontrol" data-type="button" title="[Enter]&#009; Add to queue&#013;[Ctrl+Enter] Print immediately">Add</div>
-              <div style="letter-spacing: 0.8px;font-size: 10px; text-transform: uppercase; text-align: center; padding-top: 0.5em; border-top: 1px #e0e0e0 solid;">Activate / Deactivate Barcodes</div>
+              <div title="(De)activation can only be done to queue items added with the Picker tool" style="letter-spacing: 0.8px;font-size: 10px; text-transform: uppercase; text-align: center; padding-top: 0.5em; border-top: 1px #e0e0e0 solid;">Activate / Deactivate Barcodes</div>
               <div id="activate-btn" class="fwformcontrol" data-type="button" title="Activate Barcodes"></div>
               <div id="deactivate-btn" class="fwformcontrol" data-type="button" title="Deactivate Barcodes"></div>
             </div>
@@ -184,8 +195,9 @@
   function init_ui_elements(barcode_ui) {
     let byId = RQ.barcode.byId;
     // Populate byId with references to all DOM elements within barcode_ui that have an ID.
-    byId[barcode_ui.id.replaceAll('-', '_')] = barcode_ui;
     Array.from(document.querySelectorAll('#rq-barcode [id]')).forEach(elem => byId[elem.id.replaceAll('-', '_')] = elem);
+    byId[barcode_ui.id.replaceAll('-', '_')] = barcode_ui; // and the barcode_ui itself
+    byId.barcode_button = document.querySelector('.app-usercontrols > .barcodebutton'); // and the barcode button on the main app toolbar
 
     let close_btn = barcode_ui.querySelector('.close-modal');
     close_btn.addEventListener('click', () => barcode_ui.classList.toggle('hidden'));
@@ -206,11 +218,12 @@
     let default_barcode_type = barcode_ui.querySelector('input[type="radio"][name="barcode-type"]:checked');
     default_barcode_type.dispatchEvent(new Event('change'));
 
+    // Set default print copies
+    RQ.barcode.selectedPrintCopies = barcode_ui.querySelector('input[type="radio"][name="print-copies"]:checked').value;
+    // Update selected print copies when user changes it
     add_radio_change_event("print-copies", (e) => {
       RQ.barcode.selectedPrintCopies = e.target.value;
     });
-    // Set default print copies
-    RQ.barcode.selectedPrintCopies = barcode_ui.querySelector('input[type="radio"][name="print-copies"]:checked').value;
 
     let barcode_selector = BarcodePicker(queue_barcode);
     byId.barcode_picker_btn.addEventListener('click', () => barcode_selector.toggle_enabled());
@@ -351,17 +364,33 @@
     update_queue_count();
   }
 
-  function update_queue_count() {
-    let barcode_button = document.querySelector('.app-usercontrols > .barcodebutton');
-    barcode_button.dataset.queueCount = RQ.barcode.byId.barcode_queue.childElementCount;
+  function dequeue_barcode(list_item) {
+    let queue = RQ.barcode.byId.barcode_queue;
+    if (list_item?.parentElement === queue) {
+      queue.removeChild(list_item);
+      update_queue_count();
+    }
   }
 
-  function click_queue_btn() {
+  function update_queue_count() {
+    RQ.barcode.byId.barcode_button.dataset.queueCount = RQ.barcode.byId.barcode_queue.childElementCount;
+  }
+
+  function click_queue_btn(e) {
     let textbox = RQ.barcode.byId.text_entry;
     let next_barcode = textbox.value;
-    // If a barcode is submitted manually, we don't have immediate access to the ItemId
-    queue_barcode({ Barcode: next_barcode, ItemId: undefined });
-    textbox.value = "";
+    let success = true;
+    if (e.ctrlKey) {
+      // Ctrl+Click or Ctrl+Enter prints the next barcode while skipping the queue
+      success = print_next_barcode(next_barcode);
+    }
+    else {
+      // If a barcode is submitted manually like this, we don't have immediate access to the ItemId
+      queue_barcode({ Barcode: next_barcode, ItemId: undefined });
+    }
+    if (success) {
+      textbox.value = "";
+    }
     textbox.focus();
   }
 
@@ -371,14 +400,7 @@
    */
   function text_entry_keydown(e) {
     if (e.key == 'Enter') {
-      if (e.ctrlKey) {
-        print_next_barcode(e.target.value);
-        e.target.value = "";
-        e.target.focus();
-      }
-      else {
-        click_queue_btn();
-      }
+      click_queue_btn(e);
     }
   }
 
@@ -407,7 +429,7 @@
         send_command(cmd_string);
       }
       if (!print_one_copy) {
-        next_item?.remove();
+        dequeue_barcode(next_item);
       }
       return true;
     }
@@ -422,8 +444,55 @@
     }
   }
 
+  // Prints all queued barcodes of the selected type and quantity.
+  // Once a barcode is printed, it is removed from the queue.
+  // Printing halts on the first barcode value that is invalid.
   function print_all_barcodes() {
-    ///////////////////////////////////////////////////////
+    let printer = RQ.barcode.selectedPrinter;
+    let validate = RQ.barcode.selectedBarcodeType.validate;
+    let print_command = RQ.barcode.selectedBarcodeType.print_command;
+    let print_copies = RQ.barcode.selectedPrintCopies;
+
+    let recv_fn = (queue_item) => {
+      return function (response) {
+        notify_user('warning', `I didn't think we should receive anything after printing a barcode, but I was wrong. As a result of printing "${queue_item.textContent}", we received "${response}"`);
+      }
+    };
+    let success_fn = (queue_item) => {
+      return function (response) {
+        notify_user('info', `Success printing "${queue_item.textContent}", response is "${response}"`);
+        dequeue_barcode(queue_item);
+      }
+    };
+    let err_fn = (queue_item) => {
+      return function (response) {
+        notify_user('error', `Printing halted at "${queue_item.textContent}" due to error "${response}"`);
+        printer.clearRequestQueue();
+      }
+    };
+
+    let queue = RQ.barcode.byId.barcode_queue;
+    let queued_barcodes = [];
+    // Starting from the last in the queue, validate each barcode and queue it to print
+    for (let queue_item = queue.lastElementChild; queue_item != null; queue_item = queue_item.previousElementSibling) {
+      let barcode_value = queue_item.textContent;
+      if (!validate(barcode_value)) {
+        notify_user('warning', `Stopped at "${barcode_value}" because it is not a valid barcode.`);
+        break;
+      }
+      let req = new printer.Request("print", print_command(barcode_value, print_copies), recv_fn(queue_item), success_fn(queue_item), err_fn(queue_item));
+      printer.queueRequest(req);
+      queued_barcodes.push(barcode_value);
+    }
+    if (queued_barcodes.length == 0) {
+      notify_user('error', "No barcodes to print.");
+    }
+    else if (queued_barcodes.length == 1) {
+      notify_user("1 barcode queued to print: " + queued_barcodes[0]);
+    }
+    else {
+      notify_user(queued_barcodes.length + " barcodes queued to print:\n" + queued_barcodes.join(', '));
+    }
   }
 
   function refresh_printer_list() {
@@ -433,7 +502,19 @@
     RQ.barcode.printerList = [];
 
     let add_printer_option = function (printer) {
-      RQ.barcode.printerList.push(printer);
+      // Upgrade to Zebra.Printer object, which is a superset of BrowserPrint.Device
+      let zebra_printer = new Zebra.Printer(printer);
+      if (printer.uid == -1) {
+
+        // Since the dry_run_printer doesn't exist, it'll never respond to a configuration query.
+        // The Zebra object will poll forever for it if we don't set the configuration ourselves.
+        // We only do this for dry_run_printer, because real printers should respond when queried.
+        zebra_printer.configuration = new Zebra.Printer.Configuration(printer.fake_configuration);
+        // Recklessly clobber our new object to keep our fake send method and things
+        Object.keys(printer).forEach(x => zebra_printer[x] = printer[x]);
+      }
+
+      RQ.barcode.printerList.push(zebra_printer);
       var opt = document.createElement("option");
       opt.text = printer.name;
       opt.value = printer.uid;
@@ -457,14 +538,17 @@
         add_printer_option(dry_run_printer); //Add a dry run entry last, whether or not any queries failed.
       }, function (e) { notify_user("error", "Unable to get local Zebra printers. Is the Zebra Browser Print service running?" + e); add_printer_option(dry_run_printer); }, "printer");
     }, function (e) { notify_user("error", "No printer found. Is the Zebra Browser Print service running? This is indicated by a Zebra logo icon in your Windows system tray." + e); add_printer_option(dry_run_printer); });
-  };
+  }
+
   RQ.barcode.commands = {
     getConfiguration: () => send_receive_command("^XA^HH^XZ"),
     getPrinterStatusCode: () => send_receive_command("~HS"),
     resetPrinter: () => send_command("~JR"),
-    read: () => read_from_printer(),
+    printAllInQueue: print_all_barcodes,
+    printNextInQueue: print_next_barcode,
+    read: read_from_printer,
     send: send_command,
-    sendThenRead: send_receive_command,
+    sendThenRead: send_receive_command
   }
 
   function send_receive_command(zpl_command) {

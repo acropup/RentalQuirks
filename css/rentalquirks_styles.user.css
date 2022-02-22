@@ -217,8 +217,9 @@
    justify-content: center;
    cursor: grab;
    user-select: none;
-   font-family: cursive;
-   padding-bottom: .15em;
+   font-family: 'Arial';
+   font-weight: bold;
+   padding-top: .1em;
    width: 100%;
    height: 2em;
    background-color: rgb(255 180 0 / 65%);
@@ -241,6 +242,9 @@
  }
  #barcode-queue > li.active > div {
    border-color: #000;
+ }
+ #barcode-queue > li > div:not([data-itemid]) {
+   border-width: 0px;
  }
  #barcode-queue > li > div[data-is-valid=false] {
    background-color: #c08e4b;
@@ -265,6 +269,7 @@
    max-height: 16.8em;
    overflow-y: auto;
    word-break: break-word;
+   white-space: pre-line;
    /* column-reverse causes scrolling to stick to bottom like you'd want a log to */
    display: flex;
    flex-direction: column-reverse;
