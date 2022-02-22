@@ -542,6 +542,7 @@
 
   RQ.barcode.commands = {
     getConfiguration: () => send_receive_command("^XA^HH^XZ"),
+    getConfigurationXML: () => send_receive_command("^XA^HZa^XZ"),
     getPrinterStatusCode: () => send_receive_command("~HS"),
     resetPrinter: () => send_command("~JR"),
     printAllInQueue: print_all_barcodes,
