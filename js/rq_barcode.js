@@ -34,7 +34,7 @@
       description: "0.5in x 1.0in",
       validate: (code) => { return /^\d{5}$/.test(code); }, //TODO: validation should be for 6 digits, but it's currently 5 for debugging purposes
       setup_command: () => "", //TODO: Fill this out
-      print_command: (code, quantity = 1) => `^XA^XFE:BWL1IN.GRF^FN1^FD${code}^FS^PQ,,${quantity},Y^XZ`
+      print_command: (code, quantity = 1) => `^XA^XFE:BWL1IN.GRF^FN1^FD${code}^FS^PQ${quantity}^XZ`
     },
     {
       name: "Large",
@@ -45,6 +45,7 @@
       ^FT24,48^A0,36,36^FB358,1,0,C^FDBetter Way Lighting\\&^FS
       ^FT67,146^BY4,3,80^BCN,,N,N^FD>;${code}^FS
       ^FT24,182^FP,2^FB358,1,,C^AS^FD${code}\\&^FS
+      ^PQ${quantity}
       ^XZ`
     }
   ];
@@ -421,6 +422,10 @@
     }
   }
 
+  function print_all_barcodes() {
+    ///////////////////////////////////////////////////////
+  }
+
   function refresh_printer_list() {
     let printer_select = RQ.barcode.byId.printer_select;
     printer_select.replaceChildren();
@@ -433,8 +438,10 @@
       opt.text = printer.name;
       opt.value = printer.uid;
       printer_select.add(opt);
-      RQ.barcode.selectedPrinter ??= printer;
-      update_printer_selected();
+      // Select the first printer that's added
+      if (!RQ.barcode.selectedPrinter) {
+        update_printer_selected();
+      }
       return opt;
     };
 
@@ -453,29 +460,37 @@
   };
   RQ.barcode.commands = {
     getConfiguration: () => send_receive_command("^XA^HH^XZ"),
+    getPrinterStatusCode: () => send_receive_command("~HS"),
+    resetPrinter: () => send_command("~JR"),
     read: () => read_from_printer(),
     send: send_command,
-    send_then_read: send_receive_command
+    sendThenRead: send_receive_command,
   }
 
   function send_receive_command(zpl_command) {
-    let dev = RQ.barcode.selectedPrinter;
+    let printer = RQ.barcode.selectedPrinter;
+    if (!printer) return;
     let log_entry;
-    if (!dev) return;
-    if (dev != dry_run_printer) {
+    if (printer != dry_run_printer) {
+      // Send command of dry_run_printer does its own logging
       log_entry = notify_user("info", "Send command: " + zpl_command, "pending");
     }
-    dev.send(zpl_command, function (success) {
+    printer.send(zpl_command, function (success) {
       log_entry?.classList.remove("pending");
-      dev.read(function (response) {
-        response ||= "No response";
-        notify_user("info", response);
+      printer.read(function (response) {
+        notify_user("info", response || "No response");
       }, (error) => notify_user("error", error));
     }, (error) => notify_user("error", error));
   }
   function send_command(zpl_command) {
-    let log_entry = notify_user("info", "Send command: " + zpl_command, "pending");
-    RQ.barcode.selectedPrinter.send(zpl_command,
+    let printer = RQ.barcode.selectedPrinter;
+    if (!printer) return;
+    let log_entry;
+    if (printer != dry_run_printer) {
+      // Send command of dry_run_printer does its own logging
+      log_entry = notify_user("info", "Send command: " + zpl_command, "pending");
+    }
+    printer.send(zpl_command,
       (success) => log_entry?.classList.remove("pending"),
       (error) => notify_user("error", error));
   }
@@ -518,7 +533,7 @@
       log_entry.className = class_list + ' logentry ' + log_type;
       log_entry.textContent = message;
       log_entry.dataset.timestamp = (new Date).toLocaleTimeString();
-      
+
       // In CSS with log_list style="display: flex; flex-direction: column-reverse;"
       // prepend() looks like append, and scrolling sticks to bottom like you'd want for a log.
       log_list.prepend(log_entry);
