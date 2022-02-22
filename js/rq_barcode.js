@@ -506,7 +506,7 @@
     if (i >= 0) {
       RQ.barcode.selectedPrinter = RQ.barcode.printerList[i];
       // Run setup on the new printer
-      send_receive_command(RQ.barcode.selectedBarcodeType.setup_command());
+      send_command(RQ.barcode.selectedBarcodeType.setup_command());
     }
   }
 
