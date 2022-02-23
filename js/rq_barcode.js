@@ -58,6 +58,16 @@
       ^FT24,182^FP,2^FB358,1,,C^AS^FD${code}\\&^FS
       ^PQ${quantity}
       ^XZ`
+    },
+    {
+      name: "Test",
+      description: "1.0in x 2.0in simple test",
+      validate: (code) => { return /^\d{1,8}$/.test(code); },
+      setup_command: () => "^XA^SS,,,214^PW430~TA-012^LT12^LS12^LH0,0~JSN^MNW^MTT^MMT^PON^PMN^JMA^PR2,2~SD15^JUS^LRN^CI28^XZ",
+      print_command: (code, quantity = 1) => `^XA
+      ^FWR^FT16,16^FB180,1,,L^AS^FD${code}^FS
+      ^PQ${quantity}
+      ^XZ`
     }
   ];
 
@@ -149,7 +159,8 @@
               <div class="fwformfield-caption">Barcode Type</div>
               <div class="fwformfield-control">
                 ${toggle_item_html_string("barcode-type", "Small", 0)}
-                ${toggle_item_html_string("barcode-type", "Large", 1, true)}
+                ${toggle_item_html_string("barcode-type", "Large", 1)}
+                ${toggle_item_html_string("barcode-type", "Test", 2, true)}
               </div>
             </div>
 
@@ -204,7 +215,7 @@
     byId.text_entry.addEventListener('keydown', text_entry_keydown);
     byId.queue_btn.addEventListener('click', click_queue_btn);
     byId.print_one_btn.addEventListener('click', (e) => print_next_barcode(undefined, e.ctrlKey));
-    byId.print_all_btn.addEventListener('click', (e) => print_all_barcodes());
+    byId.print_all_btn.addEventListener('click', (e) => feed_printer());
     byId.printer_select.addEventListener('change', update_printer_selected);
     byId.printer_refresh_btn.addEventListener('click', refresh_printer_list);
 
@@ -456,12 +467,15 @@
     let recv_fn = (queue_item) => {
       return function (response) {
         notify_user('warning', `I didn't think we should receive anything after printing a barcode, but I was wrong. As a result of printing "${queue_item.textContent}", we received "${response}"`);
+        dequeue_barcode(queue_item);
+        printer.executeNextRequest();
       }
     };
     let success_fn = (queue_item) => {
       return function (response) {
         notify_user('info', `Success printing "${queue_item.textContent}", response is "${response}"`);
         dequeue_barcode(queue_item);
+        printer.executeNextRequest();
       }
     };
     let err_fn = (queue_item) => {
@@ -483,6 +497,11 @@
       let req = new printer.Request("print", print_command(barcode_value, print_copies), recv_fn(queue_item), success_fn(queue_item), err_fn(queue_item));
       printer.queueRequest(req);
       queued_barcodes.push(barcode_value);
+      // The printer.queueRequest feature sends items one at a time, so the printer always pauses momentarily between print commands.
+      // This is not good, too slow and noisy. If we just sent all the barcode print commands at once, it works ok. I'm hesitant to do
+      // this, though, because I don't know how large the receive buffer is, or what happens if it gets full. All I know is there's
+      // a "buffer full flag" in the ~HS Host Status Return for when the receive buffer is full. 
+      //send_command(print_command(barcode_value, print_copies));
     }
     if (queued_barcodes.length == 0) {
       notify_user('error', "No barcodes to print.");
@@ -493,6 +512,64 @@
     else {
       notify_user(queued_barcodes.length + " barcodes queued to print:\n" + queued_barcodes.join(', '));
     }
+  }
+
+  function feed_printer() {
+    //TODO: Handle situations where user clicks on things while this process is happening (ex. disable UI)
+    let printer = RQ.barcode.selectedPrinter;
+    let validate = RQ.barcode.selectedBarcodeType.validate;
+    let print_command = RQ.barcode.selectedBarcodeType.print_command;
+    let print_copies = RQ.barcode.selectedPrintCopies;
+    let queue = RQ.barcode.byId.barcode_queue;
+    // Starting from the last in the queue, validate each barcode and queue it to print
+
+    let on_error = function (e) {
+      notify_user('error', "Oopsies, something happened: " + e)
+    }
+
+    let got_host_status = function (host_status_return) {
+      let lines = host_status_return.split("\r\n\x02");
+      let num_formats = +lines[0]?.split(',')[4]; // Number of format commands in the command buffer
+      let num_labels = +lines[1]?.split(',')[8];  // Number of labels (copies) remaining in the current format command
+      console.log('number of formats and labels', num_formats, num_labels);
+      // Aim to have enough format commands that the number of labels buffered is at least 'label_buffer_target'
+      const label_buffer_target = 8;
+      while (num_formats * print_copies < label_buffer_target) {
+        // If printer command buffer is getting low, add next in page queue to printer queue
+        let queue_item = queue.lastElementChild;
+        let barcode_value = queue_item?.textContent || "";
+        if (validate(barcode_value)) {
+          send_command(print_command(barcode_value, print_copies));
+          num_formats++;
+          //TODO: It would be better to dequeue the barcode once we know it's printing or has been printed, rather than as soon as we send it to the printer
+          dequeue_barcode(queue_item);
+        }
+        else {
+          if (queue_item) {
+            notify_user('warning', `Stopped at "${barcode_value}" because it is not a valid barcode.`);
+          }
+          else {
+            notify_user('info', "Barcode queue is empty.");
+          }
+          // Stop adding to the printer command buffer; we're at the end.
+          return;
+        }
+      }
+      // Query Host Status again, to check the print buffer size
+      printer.sendThenRead("~HS", got_host_status, on_error);
+    };
+
+    //TODO: It takes a while (~1sec) to query the printer state. It'd be nice if we could first try to start printing and
+    //      then check the state later. If we find that the printer is in an error state, we then stop and recover from
+    //      the false start.
+    printer.isPrinterReady()
+      .then(() => {
+        // Kickstart the cycle by passing a pretend host status result that makes it look like the printer's buffer is empty
+        got_host_status('\x02014,0,0,0214,000,0,0,0,000,0,0,0\x03\r\n\x02001,0,0,0,1,2,3,0,00000000,1,000\x03\r\n\x021234,0\x03\r\n');
+      }).catch((e) => {
+        notify_user('warning', 'Printer is not ready. Status: ' + e);
+      });
+
   }
 
   function refresh_printer_list() {
@@ -545,7 +622,7 @@
     getConfigurationXML: () => send_receive_command("^XA^HZa^XZ"),
     getPrinterStatusCode: () => send_receive_command("~HS"),
     resetPrinter: () => send_command("~JR"),
-    printAllInQueue: print_all_barcodes,
+    printAllInQueue: feed_printer,
     printNextInQueue: print_next_barcode,
     read: read_from_printer,
     send: send_command,
