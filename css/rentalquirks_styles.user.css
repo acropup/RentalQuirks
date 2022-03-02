@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.2.0
+@version        0.2.1
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -236,12 +236,40 @@
    width: 100%;
  }
  
+ #barcode-queue > li {
+   position: relative;
+ }
  #barcode-queue > li.selected > div {
    background-color: #46f;
    border-color: #12f;
  }
  #barcode-queue > li.active > div {
    border-color: #000;
+ }
+ #barcode-queue > li:after {
+   content: '';
+   opacity: 0;
+   transform: translateX(-50%);
+   transition: transform .3s ease-out, opacity .4s ease;
+ }
+ #barcode-queue > li[data-print-status]:after {
+   content: '';
+   opacity: 1;
+   font-family: 'Material Icons';
+   color:#01579b;
+   position: absolute;
+   right: 0.25em;
+   top: 20%;
+   transform: translateX(0%);
+   font-size: 22px;
+ }
+ #barcode-queue > li[data-print-status="sent"]:after {
+   content: '\ef64';
+   transform: rotate(0deg);
+ }
+ #barcode-queue > li[data-print-status="done"]:after {
+   content: '\e86c';
+   transform: rotate(-360deg);
  }
  #barcode-queue > li > div:not([data-itemid]) {
    border-width: 0px;
@@ -282,6 +310,7 @@
  #barcode-log .logentry.pending {
    font-style: italic;
    background-color: #2196f3;
+   transition: background-color 0s;
  }
  #barcode-log .logentry.warning {
    font-style: italic;
@@ -305,6 +334,14 @@
    content: "X";
    color: red;
  }
+ #barcode-log .logentry[data-repeat-count]:after {
+   content: attr(data-repeat-count);
+   background-color: rgba(255, 180, 0, .5);
+   border-radius: .4em;
+   font-style: normal;
+   padding: 0px 3px;
+ }
+  
  .rq-draghandle {
    cursor: grab;
  }
@@ -313,7 +350,7 @@
    position: absolute;
    left: 8.5em;
    top: 3.8em;
-   transition: color 0.2s ease;
+   transition: all 0.2s ease;
  }
  #barcode-picker-btn.picking {
    color: rgb(255,180,0);
@@ -334,7 +371,10 @@
    margin-top: -1px;
  }
  #activate-btn:before,
- #deactivate-btn:before {
+ #deactivate-btn:before,
+ #pause-btn:before,
+ #cancel-btn:before,
+ #clear-btn:before {
    font-family: 'Material Icons';
    font-size: 24px;
    display: inline-block;
@@ -350,6 +390,25 @@
  }
  #deactivate-btn:before {
    content: '\e14a';
+ }
+ #pause-btn.paused {
+   background-color: #1e88e5;
+   color: rgb(255,180,0);
+ }
+ #pause-btn:before,
+ #cancel-btn:before,
+ #clear-btn:before {
+   letter-spacing:-0.1em;
+   margin-right: 5px;
+   font-size: 28px;
+ }
+ #pause-btn:before  { content: '\e036'; }
+ #cancel-btn:before { content: '\e888'; }
+ #clear-btn:before  { content: '\e92d'; }
+  
+ #print-one-btn {
+   padding-left: 1em;
+   padding-right: 0.9em;
  }
  #print-all-btn {
    position: absolute;
