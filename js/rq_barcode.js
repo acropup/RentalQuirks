@@ -487,6 +487,11 @@
   // Prints all queued barcodes of the selected type and quantity.
   // Once a barcode is printed, it is removed from the queue.
   // Printing halts on the first barcode value that is invalid.
+  // NOTE: This function uses the Zebra library's command queue. This is safe, but not optimal because 
+  //       it only sends one command at a time, and in between commands, the printer has time to stop
+  //       and wait. This is being left here as a fallback in case feed_printer() is found to be unreliable.
+  //       This function is not made to work with the pause/cancel buttons.
+  /*
   function print_all_barcodes() {
     let printer = RQ.barcode.selectedPrinter;
     let validate = RQ.barcode.selectedBarcodeType.validate;
@@ -542,43 +547,147 @@
       notify_user(queued_barcodes.length + " barcodes queued to print:\n" + queued_barcodes.join(', '));
     }
   }
+  */
 
+  /**Starting from the last in the queue, send each item to print. Each barcode is
+   * validated, and printing stops at the first invalid barcode.
+   * The printer is continuously queried for status updates, and barcodes are sent
+   * periodically in order to maintain an optimal buffer of commands on the printer.
+   * If everything works as intended, the printer will print all the required labels
+   * while maintaining continuous motion of its media. If the printer stops and starts
+   * between items, then the 'buffer_target' should be increased to accommodate. We
+   * don't just send all format commands at once, because the printer's command buffer
+   * is of limited size and could be filled to capacity. Zebra documentation does not
+   * specify what happens when the buffer is filled.
+   */
   function feed_printer() {
+    // I apologize to my future self and anyone else who ever needs to work on this, but
+    // this effort put into printing barcodes is already borderline unjustifiable, given
+    // that only one person is likely to ever use it.
+    // This routine can run (asynchronously) for an extended period of time, and it
+    // makes certain assumptions about the state of the program that are not necessarily
+    // guaranteed. An effort should be made to prevent the user from changing settings
+    // and rearranging the barcode queue while barcodes are being printed. It should
+    // properly handle pausing and cancelling the print queue, though.
+    //  
     //TODO: Handle situations where user clicks on things while this process is happening (ex. disable UI)
+    let barcode_utility = RQ.barcode.byId.rq_barcode;
     let printer = RQ.barcode.selectedPrinter;
     let validate = RQ.barcode.selectedBarcodeType.validate;
     let print_command = RQ.barcode.selectedBarcodeType.print_command;
     let print_copies = RQ.barcode.selectedPrintCopies;
     let queue = RQ.barcode.byId.barcode_queue;
-    // Starting from the last in the queue, validate each barcode and queue it to print
+
+    let total_sent_to_printer = 0;
+    let started_sending = false;
+    let done_sending = false;
+    // Clear print status if left from previous runs
+    queue.querySelectorAll('li[data-print-status]').forEach(x => delete x.dataset.printStatus);
 
     let on_error = function (e) {
-      notify_user('error', "Oopsies, something happened: " + e)
-    }
+      notify_user('error', "Oopsies, something happened: " + e);
+      //TODO: Cleanup whatever might have happened to the queue prior to the error. For now,
+      //      I'm leaving it because the mess left after an error will help identify the problem.
+    };
+    let update_buffer_status = function (remaining_buffer_size) {
+      let sent_items = [...queue.querySelectorAll('li[data-print-status="sent"]')];
+      // Skip the ones that are still in the buffer, and mark the rest as done
+      sent_items.slice(remaining_buffer_size).forEach(x => x.dataset.printStatus = "done");
+    };
 
     let got_host_status = function (host_status_return) {
-      let lines = host_status_return.split("\r\n\x02");
-      let num_formats = +lines[0]?.split(',')[4]; // Number of format commands in the command buffer
-      let num_labels = +lines[1]?.split(',')[8];  // Number of labels (copies) remaining in the current format command
-      console.log('number of formats and labels', num_formats, num_labels);
-      // Aim to have enough format commands that the number of labels buffered is at least 'label_buffer_target'
-      const label_buffer_target = 8;
-      while (num_formats * print_copies < label_buffer_target) {
-        // If printer command buffer is getting low, add next in page queue to printer queue
-        let queue_item = queue.lastElementChild;
-        let barcode_value = queue_item?.textContent || "";
-        if (validate(barcode_value)) {
-          send_command(print_command(barcode_value, print_copies));
-          num_formats++;
-          //TODO: It would be better to dequeue the barcode once we know it's printing or has been printed, rather than as soon as we send it to the printer
-          dequeue_barcode(queue_item);
+      let hs = parse_host_status(host_status_return);
+
+      // Check buffer status and update UI to reflect it
+      let num_in_buffer = hs.num_formats_in_buffer // Number of format commands in the command buffer
+      console.log('number of formats and labels', num_in_buffer, hs.num_labels_remaining_in_batch);
+
+      // Aim to have enough format commands in the buffer to exceed 'buffer_target'
+      const buffer_target = Math.ceil(8 / print_copies);
+      let buffer_short = buffer_target - num_in_buffer;
+      if (buffer_short > 0) {
+        // Unless just starting, the printer must have processed (printed) one or more commands (set of barodes)
+        update_buffer_status(num_in_buffer);
+
+        if (done_sending) {
+          // Here we're just waiting until printer's buffer is empty (everything's finished printing)
+          if (num_in_buffer == 0) {
+            let total_finished_printing = total_sent_to_printer - hs.num_formats_in_buffer;
+            notify_user('info', `Printed ${total_finished_printing} queue items.`);
+            RQ.barcode.byId.pause_btn.classList.remove('paused');
+            barcode_utility.dataset.printState = "ready";
+            return;
+          }
         }
-        else {
-          if (queue_item) {
-            notify_user('warning', `Stopped at "${barcode_value}" because it is not a valid barcode.`);
+      }
+
+      // Handle any error conditions in the printer status
+      if (!hs.is_ready() || barcode_utility.dataset.printState == "abort") {
+        let abort = true;
+        if (hs.head_up) notify_user('error', "Print head is open. Close print head and try again.");
+        if (hs.paper_out) notify_user('error', "Printer thinks label paper is missing from feeder.");
+        if (hs.ribbon_out) notify_user('error', "Printer thinks thermal transfer ribbon is missing from feeder.");
+        if (hs.under_temp) notify_user('error', "Printer thinks it's too cold!");
+        if (hs.over_temp) notify_user('error', "Printer thinks it's too hot!");
+        if (hs.corrupt_ram) {
+          notify_user('error', "Printer claims that RAM is corrupt. Attempting to reboot...");
+          RQ.barcode.commands.resetPrinter();
+        }
+        if (hs.buffer_full) {
+          abort = false;
+          notify_user('warning', "Printer's command buffer is full! Retrying...");
+        }
+        if (hs.paused) {
+          abort = false;
+          if (!started_sending) {
+            notify_user('warning', "Printer is paused, attempting to resume...");
+            // Normally the user should press the Pause button on the printer, but this will hopefully make that unnecessary
+            // We only do this the first time around so that we don't interfere with the user choosing to pause during printing
+            RQ.barcode.commands.resumePrinting();
           }
           else {
-            notify_user('info', "Barcode queue is empty.");
+            notify_user('warning', "Printer is paused. Press the PAUSE button on the printer's control panel to resume.");
+          }
+        }
+
+        if (abort || barcode_utility.dataset.printState == "abort") {
+          RQ.barcode.commands.cancelAllPending();
+          let total_finished_printing = total_sent_to_printer - hs.num_formats_in_buffer;
+          notify_user('info', `Action aborted. Printed ${total_finished_printing} queue items.`);
+          // Mark any printed as "done", and remove any marked "sent" because we cancelled them
+          update_buffer_status(hs.num_formats_in_buffer);
+          queue.querySelectorAll('li[data-print-status="sent"]').forEach(x => delete x.dataset.printStatus);
+          RQ.barcode.byId.pause_btn.classList.remove('paused');
+          barcode_utility.dataset.printState = "ready";
+          return; // Do not query ~HS again because we are done!
+        }
+        // !abort means we will query ~HS again
+      }
+      else if (buffer_short > 0 && !done_sending) { // If printer status is ok, keep the command buffer topped up
+        started_sending = true;
+        // If there is room in the printer command buffer, add next in queue to printer command buffer
+        // Starting from last, choose x items where x = buffer_short
+        let queue_items = [...queue.querySelectorAll('li:not([data-print-status])')].slice(-buffer_short).reverse();
+        if (queue_items.length == 0) {
+          notify_user('info', "Barcode queue is empty.");
+          done_sending = true;
+        }
+        else {
+          for (const queue_item of queue_items) {
+            let barcode_value = queue_item?.textContent || "";
+            if (validate(barcode_value)) {
+              send_command(print_command(barcode_value, print_copies));
+              total_sent_to_printer++;
+              // The barcode command has been sent to the printer, but it won't print immediately if it gets buffered behind other commands
+              // For now, just mark the item as "sent", and later we'll check if it's made it through the buffer
+              queue_item.dataset.printStatus = "sent";
+            }
+            else {
+              notify_user('warning', `Stopped at "${barcode_value}" because it is not a valid barcode.`);
+              // Stop adding to the printer command buffer; we're at the end.
+              done_sending = true;
+              break;
+            }
           }
         }
       }
@@ -589,14 +698,54 @@
     //TODO: It takes a while (~1sec) to query the printer state. It'd be nice if we could first try to start printing and
     //      then check the state later. If we find that the printer is in an error state, we then stop and recover from
     //      the false start.
-    printer.isPrinterReady()
-      .then(() => {
-        // Kickstart the cycle by passing a pretend host status result that makes it look like the printer's buffer is empty
-        got_host_status('\x02014,0,0,0214,000,0,0,0,000,0,0,0\x03\r\n\x02001,0,0,0,1,2,3,0,00000000,1,000\x03\r\n\x021234,0\x03\r\n');
-      }).catch((e) => {
-        notify_user('warning', 'Printer is not ready. Status: ' + e);
-      });
+    printer.sendThenRead("~HS", got_host_status, on_error);
+    barcode_utility.dataset.printState = "print";
 
+    // Kickstart the cycle by passing a pretend host status result that makes it look like the printer's buffer is empty and it is ready to print
+    //TODO: This is disabled currently, because if the machine is paused, I don't know if it was paused from the start or if the user paused it. 
+    //got_host_status(sample_good_host_status);
+
+  }
+
+  function parse_host_status(hs_data) {
+    // Sample hs_data from ~HS command: '\x02014,0,0,0214,000,0,0,0,000,0,0,0\x03\r\n\x02001,0,0,0,1,2,3,0,00000000,1,000\x03\r\n\x021234,0\x03\r\n'
+    //Split on control characters (we're expecting STX, ETX, CR, LF) to get the three status lines
+    let lines = hs_data.split(/[\cA-\cZ]/).filter(Boolean).map(x => x.split(','));
+    let line1 = lines[0];
+    let line2 = lines[1];
+    let line3 = lines[2];
+    let flag = (zero_or_one_str) => zero_or_one_str == "1";
+    let status = {
+      comm_settings: line1[0],
+      paper_out: flag(line1[1]),
+      paused: flag(line1[2]),
+      label_length: line1[3],
+      num_formats_in_buffer: line1[4],
+      buffer_full: flag(line1[5]),
+      comm_diag_mode: flag(line1[6]),
+      partial_format: flag(line1[7]),
+      //line1[8] is unused
+      corrupt_ram: flag(line1[9]),
+      under_temp: flag(line1[10]),
+      over_temp: flag(line1[11]),
+
+      func_settings: line2[0],
+      //line2[1] is unused
+      head_up: flag(line2[2]),
+      ribbon_out: flag(line2[3]),
+      thermal_transfer_mode: flag(line2[4]),
+      print_mode: line2[5],
+      print_width_mode: line2[6], // No idea what this means
+      label_waiting: flag(line2[7]),
+      num_labels_remaining_in_batch: line2[8],
+      //line2[9] always 1
+      num_graphic_imgs_in_memory: line2[10],
+
+      password: line3[0],
+      static_ram_installed: flag(line2[1])
+    };
+    status.is_ready = () => !(status.paper_out || status.ribbon_out || status.head_up || status.paused || status.buffer_full || status.corrupt_ram || status.under_temp || status.over_temp);
+    return status;
   }
 
   function refresh_printer_list() {
