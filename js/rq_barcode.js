@@ -870,14 +870,23 @@
 
     let log_list = RQ.barcode.byId.barcode_log;
     if (log_list) {
-      let log_entry = document.createElement('div');
-      log_entry.className = class_list + ' logentry ' + log_type;
-      log_entry.textContent = message;
-      log_entry.dataset.timestamp = (new Date).toLocaleTimeString();
+      // Avoid sending the same message repeatedly
+      let log_entry = log_list.firstElementChild;
+      if (log_entry.textContent == message) {
+        let count = Number(log_entry.dataset.repeatCount) || 1;
+        log_entry.dataset.repeatCount = count + 1;
+        log_entry.className = class_list + ' logentry ' + log_type;
+      }
+      else { // Create a new log entry
+        log_entry = document.createElement('div');
+        log_entry.className = class_list + ' logentry ' + log_type;
+        log_entry.textContent = message;
+        log_entry.dataset.timestamp = (new Date).toLocaleTimeString();
 
-      // In CSS with log_list style="display: flex; flex-direction: column-reverse;"
-      // prepend() looks like append, and scrolling sticks to bottom like you'd want for a log.
-      log_list.prepend(log_entry);
+        // In CSS with log_list style="display: flex; flex-direction: column-reverse;"
+        // prepend() looks like append, and scrolling sticks to bottom like you'd want for a log.
+        log_list.prepend(log_entry);
+      }
       return log_entry;
     }
   }
