@@ -21,12 +21,18 @@
   RQ.barcode.selectedPrinter;
   RQ.barcode.selectedBarcodeType;
   RQ.barcode.selectedPrintCopies;
+  const sample_good_host_status = '\x02014,0,0,0214,000,0,0,0,000,0,0,0\x03\r\n\x02001,0,0,0,1,2,3,0,00000000,1,000\x03\r\n\x021234,0\x03\r\n';
   //Provide a dummy printer entry so that people can practice with the UI without sending prints by accident.
   const dry_run_printer = {
     name: "Dry run - print disabled",
     uid: -1,
     send: (zpl_command) => notify_user("info", "Pretend send: " + zpl_command),
     read: () => notify_user("info", "Pretend read."),
+    sendThenRead: (zpl_command, yah, nah) => {
+      if (zpl_command == '~HS') { // Fake a response after 1 second
+        setTimeout(() => yah(sample_good_host_status), 1000);
+      }
+    },
     // Configuration responses start with \x02 (STX), end with \x03 (ETX), and every line reserves
     // the first 20 chars for the value, and the rest for the name. Acutal configuration responses
     // have many more properties (Send ^XA^HH^XZ for an example), but as of Zebra library v1.0.216,
@@ -112,7 +118,7 @@
     barcode_ui.className = 'fwpopup fwconfirmation';
     barcode_ui.id = "rq-barcode";
     barcode_ui.innerHTML = `
-  <div class="fwpopupbox fwconfirmationbox rq-draggable">
+  <div class="fwpopupbox fwconfirmationbox rq-draggable" data-print-state="ready">
   <div class="popuptitle rq-draghandle">Barcode Print Utility</div>
   <div class="close-modal"><i class="material-icons"></i>
     <div class="btn-text">Close</div>
@@ -126,16 +132,20 @@
           <div class="fwform-section-body" style="display: flex; flex-direction: row; gap: 5px;">
             <div style="flex-direction: column;">
               <div class="fwformfield" data-type="text"><div class="fwformfield-control">
-              <input id="text-entry" type="text" class="fwformfield-value" autocomplete="off" list="autocompleteOff"></div></div>
+              <input id="text-entry" type="text" class="fwformfield-value" autocomplete="off" list="autocompleteOff" placeholder="Enter Barcode #"></div></div>
               <ul id="barcode-queue"></ul>
               <div id="print-one-btn" class="fwformcontrol" data-type="button" title="[Ctrl+Click] to print just one copy while leaving the barcode in the queue.">Print Next</div>
-              <div id="print-all-btn" class="fwformcontrol" data-type="button">Print All</div>
+              <div id="print-all-btn" class="fwformcontrol" data-type="button" title="Prints all barcodes in the queue, starting at the bottom, and stopping at the first invalid queue entry.">Print All</div>
             </div>
             <div style="display: flex; flex-direction: column; gap: 6px; width: 4em;">
               <div id="queue-btn" class="fwformcontrol" data-type="button" title="[Enter]&#009; Add to queue&#013;[Ctrl+Enter] Print immediately">Add</div>
               <div title="(De)activation can only be done to queue items added with the Picker tool" style="letter-spacing: 0.8px;font-size: 10px; text-transform: uppercase; text-align: center; padding-top: 0.5em; border-top: 1px #e0e0e0 solid;">Activate / Deactivate Barcodes</div>
               <div id="activate-btn" class="fwformcontrol" data-type="button" title="Activate Barcodes"></div>
               <div id="deactivate-btn" class="fwformcontrol" data-type="button" title="Deactivate Barcodes"></div>
+              <div style="letter-spacing: 0.8px;font-size: 10px;text-transform: uppercase;text-align: center;margin-top: 11.9em;padding-top: 0.5em;border-top: 1px #e0e0e0 solid;">Print Controls</div>
+              <div id="pause-btn" class="fwformcontrol" data-type="button" title="Pause printing"></div>
+              <div id="cancel-btn" class="fwformcontrol" data-type="button" title="Cancel printing"></div>
+              <div id="clear-btn" class="fwformcontrol" data-type="button" title="Clear printed items from queue"></div>
             </div>
           </div>
         </div>
@@ -179,7 +189,7 @@
         <div class="fwcontrol fwcontainer fwform-section" data-control="FwContainer">
           <div class="fwform-section-title">Logging</div>
           <div id="barcode-log" class="fwform-section-body">
-            <div>To do: Halt printing, stop on invalid code</div>
+            <div>To do: Disable UI while printing</div>
           </div>
         </div>
       </div>
@@ -250,7 +260,26 @@
       let queue_items = byId.barcode_queue.querySelectorAll(`li${has_selection ? '.selected' : ''} > [data-itemid][data-is-valid=true]`);
       deactivate_barcodes([...queue_items]);
     });
-
+    byId.pause_btn.addEventListener('click', (e) => {
+      if (byId.rq_barcode.dataset.printState == "print" && !e.target.classList.toggle('paused')) {
+        RQ.barcode.commands.resumePrinting();
+      }
+      else {
+        RQ.barcode.commands.pausePrinting();
+      }
+    });
+    byId.cancel_btn.addEventListener('click', (e) => {
+      if (byId.rq_barcode.dataset.printState == "print") {
+        byId.rq_barcode.dataset.printState = "abort";
+        byId.pause_btn.classList.remove('paused');
+      }
+      RQ.barcode.commands.cancelAllPending();
+    });
+    byId.clear_btn.addEventListener('click', (e) => {
+      if (byId.rq_barcode.dataset.printState == "ready") {
+        byId.barcode_queue.querySelectorAll('li[data-print-status="done"]').forEach(item => item.remove());
+      }
+    });
     refresh_printer_list();
 
 
@@ -435,7 +464,7 @@
     let barcode_type = RQ.barcode.selectedBarcodeType;
     if (barcode_type.validate(next_barcode)) {
       notify_user(`Printing ${print_copies} of ${next_barcode} in style ${barcode_type.name}`);
-      if (RQ.barcode.selectedPrinter != dry_run_printer) {
+      if (RQ.barcode.selectedPrinter.uid != dry_run_printer.uid) {
         let cmd_string = barcode_type.print_command(next_barcode, print_copies);
         send_command(cmd_string);
       }
@@ -551,8 +580,6 @@
           else {
             notify_user('info', "Barcode queue is empty.");
           }
-          // Stop adding to the printer command buffer; we're at the end.
-          return;
         }
       }
       // Query Host Status again, to check the print buffer size
@@ -582,13 +609,13 @@
       // Upgrade to Zebra.Printer object, which is a superset of BrowserPrint.Device
       let zebra_printer = new Zebra.Printer(printer);
       if (printer.uid == -1) {
-
         // Since the dry_run_printer doesn't exist, it'll never respond to a configuration query.
         // The Zebra object will poll forever for it if we don't set the configuration ourselves.
         // We only do this for dry_run_printer, because real printers should respond when queried.
         zebra_printer.configuration = new Zebra.Printer.Configuration(printer.fake_configuration);
         // Recklessly clobber our new object to keep our fake send method and things
         Object.keys(printer).forEach(x => zebra_printer[x] = printer[x]);
+        console.error('Please disregard a single 500 (Internal Server Error) with localhost. This occurs because the Zebra.Printer() initialization tries to contact the fake Dry Run printer.');
       }
 
       RQ.barcode.printerList.push(zebra_printer);
@@ -621,6 +648,9 @@
     getConfiguration: () => send_receive_command("^XA^HH^XZ"),
     getConfigurationXML: () => send_receive_command("^XA^HZa^XZ"),
     getPrinterStatusCode: () => send_receive_command("~HS"),
+    cancelAllPending: () => send_command("~JA"),
+    pausePrinting: () => send_command("~PP"),
+    resumePrinting: () => send_command("~PS"),
     resetPrinter: () => send_command("~JR"),
     printAllInQueue: feed_printer,
     printNextInQueue: print_next_barcode,
@@ -633,7 +663,7 @@
     let printer = RQ.barcode.selectedPrinter;
     if (!printer) return;
     let log_entry;
-    if (printer != dry_run_printer) {
+    if (printer.uid != dry_run_printer.uid) {
       // Send command of dry_run_printer does its own logging
       log_entry = notify_user("info", "Send command: " + zpl_command, "pending");
     }
@@ -648,7 +678,7 @@
     let printer = RQ.barcode.selectedPrinter;
     if (!printer) return;
     let log_entry;
-    if (printer != dry_run_printer) {
+    if (printer.uid != dry_run_printer.uid) {
       // Send command of dry_run_printer does its own logging
       log_entry = notify_user("info", "Send command: " + zpl_command, "pending");
     }
@@ -867,12 +897,12 @@
         e.preventDefault();
       }
     }
-    function loggit(e) {
-      let t = e.target.closest('li');
-      let ti = Array.from(t?.parentElement.children || []).indexOf(t);
-      let f = e.fromElement?.closest('li');
-      let fi = Array.from(f?.parentElement.children || []).indexOf(f);
-      console.log(e.type, e.target.tagName + '[' + ti + ']', e.fromElement?.tagName + '[' + fi + ']');
+    function loggit(e) { //uncomment for debugging
+      // let t = e.target.closest('li');
+      // let ti = Array.from(t?.parentElement.children || []).indexOf(t);
+      // let f = e.fromElement?.closest('li');
+      // let fi = Array.from(f?.parentElement.children || []).indexOf(f);
+      // console.log(e.type, e.target.tagName + '[' + ti + ']', e.fromElement?.tagName + '[' + fi + ']');
     }
 
     function on_drag_enter(e) {
