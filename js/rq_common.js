@@ -7,7 +7,7 @@
 /** Boolean value for any features that should only be run on the test/training domain */
 const IS_TEST_SITE = location.pathname == "/training/";
 /** The current RentalWorks URL up until (but excluding) the pound sign (#) */
-const RW_URL = location.origin + location.pathname;
+const RW_URL = window.applicationConfig?.apiurl ?? location.origin + location.pathname;
 
 /**
  * Fires a change event on an element so that the website's other scripts
