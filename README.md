@@ -23,6 +23,10 @@ After installing the Stylus browser extension, click the two user.css links belo
 ## Functionality improvements with JavaScript UserScripts
 After installing the Tampermonkey browser extension, go to the [RentalQuirks.user.js direct link](../../raw/master/RentalQuirks.user.js) and click the `Install` button.
 
+## Zebra Barcode Printer integration
+
+The Barcode Print Utility within RentalQuirks uses the Zebra [Browser Print developer tool](https://www.zebra.com/us/en/support-downloads/printer-software/by-request-software.html#browser-print), which is available for free [by request](https://www.zebra.com/us/en/forms/browser-print-request-javascript.html) from their website. A copy of the library code is saved in [js/lib/ZebraBrowserPrint](/tree/master/js/lib/ZebraBrowserPrint), with a [small change](/commit/88c9659b35fe7701a19f6839f4a25cbed57bf3f6) regarding `globalThis`. To use with a local printer, the Zebra Browser Print application needs to be installed and run. A copy of the installer (also available on Zebra.com) is saved here ([Zebra Browser Print for Windows](/blob/master/zebra-browser-print-windows-v131445.exe)).
+
 ## How to verify that the scripts are running
 ![RentalWorks logo with QUIRKS and version number](img/RQ_logo.png "Rental Essentials logo with flower and version number")
 
@@ -65,6 +69,19 @@ Here is a short feature list of the **RentalQuirks** scripts. This includes both
   - Ctrl + Left click headers to maintain existing sort on other columns.
   - Right clicking a header brings up the menu, just like default RentalWorks left click behaviour.
   - Ctrl + Left click any table cell to filter the column by that value.
+- Zebra Barcode Printer integration:
+  - Barcode Print Utility lives as an application alongside RentalWorks, and lets you queue up barcodes and print them directly to a Zebra label printer.
+  - If you want to use the Barcode Print Utility, **you will need to fork RentalQuirks and customize barcode.js** with your own label formats and other preferences.
+  - Ability to choose between label formats, and print duplicates of the same barcode.
+  - The "Dry Run" printer option lets you acquaint yourself with the interface without printing labels by accident.
+  - Barcode picker lets you choose barcodes from anywhere they exist on the site.
+  - Activate / Deactivate Barcodes button marks selected barcodes with an X, to signify that the barcode is not currently in use.
+  - Drag and drop interface for rearranging queued items. Multi-select with the mouse and Ctrl and Shift keys.
+  - Stop, Pause, and Resume functionality for batch printing.
+  - Quick Print and skip the queue by typing a barcode and submitting it with Ctrl+Enter.
+  - Hover tooltips on many of the buttons describe the expert features available. 
+  - Extensive logging of printer commands and communications.
+- Unambiguous "Hamburger Menu" icon. *(Optional)*
 
 
 # TODO
