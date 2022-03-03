@@ -127,7 +127,7 @@
     <div class="flexrow">
       <div class="flexcolumn">
         <div class="fwcontrol fwcontainer fwform-section" data-control="FwContainer">
-          <div id="barcode-picker-btn" class="fwformcontrol" data-type="button">Picker</div>
+          <div id="barcode-picker-btn" class="fwformcontrol" data-type="button" title="From within RentalWorks, click on any Barcode field to add it to the print queue">Picker</div>
           <div class="fwform-section-title">Print Queue</div>
           <div class="fwform-section-body" style="display: flex; flex-direction: row; gap: 5px;">
             <div style="flex-direction: column;">
@@ -985,7 +985,8 @@
             let table_elem = table_section.parentElement;
             let get_column = function (column_name) {
               let header = table_elem.querySelector('thead > tr.fieldnames');
-              let header_cell = header.querySelector(`td > .field[data-browsedatafield="${column_name}"]`)
+              let header_cell = header.querySelector(`td > .field[data-browsedatafield="${column_name}"]`);
+              if (!header_cell) return null;
               let column_number = header_cell.parentElement.cellIndex + 1;  //query selector :nth-child() is 1-indexed
               return table_elem.querySelectorAll(`tbody > tr > td:nth-child(${column_number}) div.field`);
             };
@@ -993,7 +994,9 @@
             let barcode_cells = get_column('BarCode');
             let item_id_cells = get_column('ItemId');
             for (let i = 0; i < barcode_cells.length; i++) {
-              select_callback({ Barcode: barcode_cells[i].textContent, ItemId: item_id_cells[i]?.textContent });
+              // Some tables don't have an ItemId column. For example, in an Order -> Value Sheet -> Manifest Items -> Detail,
+              // or Contract -> Rental Detail. For these tables, we only get the barcode, and ItemId is undefined.
+              select_callback({ Barcode: barcode_cells[i].textContent, ItemId: item_id_cells?.[i]?.textContent });
             }
             return;
           }
