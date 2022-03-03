@@ -57,7 +57,7 @@
       name: "Large",
       description: "1.0in x 2.0in",
       validate: (code) => { return /^\d{6}$/.test(code); },
-      setup_command: () => "^XA^SS,,,214^PW430~TA-012^LT12^LS12^LH0,0~JSN^MNW^MTT^MMT^PON^PMN^JMA^PR2,2~SD15^JUS^LRN^CI28^XZ",
+      setup_command: () => "^XA^SS,,,214^PW430~TA-012^LT12^LS12^LH0,0~JSN^MNW^MTT^MMT^PON^PMN^FWN,0^LRN^JMA^PR2,2~SD15^JUS^CI28^XZ",
       print_command: (code, quantity = 1) => `^XA
       ^FT24,48^A0,36,36^FB358,1,0,C^FDBetter Way Lighting\\&^FS
       ^FT67,146^BY4,3,80^BCN,,N,N^FD>;${code}^FS
@@ -69,16 +69,16 @@
       name: "Test",
       description: "1.0in x 2.0in simple test",
       validate: (code) => { return /^\d{1,8}$/.test(code); },
-      setup_command: () => "^XA^SS,,,214^PW430~TA-012^LT12^LS12^LH0,0~JSN^MNW^MTT^MMT^PON^PMN^JMA^PR2,2~SD15^JUS^LRN^CI28^XZ",
+      setup_command: () => "^XA^SS,,,214^PW430~TA-012^LT12^LS12^LH0,0~JSN^MNW^MTT^MMT^PON^PMN^FWN,0^LRN^JMA^PR2,2~SD15^JUS^CI28^XZ",
       print_command: (code, quantity = 1) => `^XA
-      ^FWR^FT16,16^FB180,1,,L^AS^FD${code}^FS
+      ^FWR^FT360,16^FB180,1,,L^AS^FD${code}^FS
       ^PQ${quantity}
       ^XZ`
     }
   ];
 
-  //TODO: Remove this after debugging. This opens barcode utility automatically when page loads.
-  RQ.runOnAppLoad.push(init);
+  //For testing, this opens barcode utility automatically when page loads.
+  //RQ.runOnAppLoad.push(click_barcode_button);
 
   function addBarcodeButton(toolbar, position) {
     if (!toolbar) return false;
@@ -97,11 +97,11 @@
 </g></svg>
 `; //SVG barcode icon
     toolbar.insertAdjacentElement(position, btn);
-    btn.addEventListener('click', init);
+    btn.addEventListener('click', click_barcode_button);
     return btn;
   }
 
-  function init() {
+  function click_barcode_button() {
     if (RQ.barcode.ui) {
       RQ.barcode.ui.classList.toggle('hidden');
       return;
@@ -169,8 +169,8 @@
               <div class="fwformfield-caption">Barcode Type</div>
               <div class="fwformfield-control">
                 ${toggle_item_html_string("barcode-type", "Small", 0)}
-                ${toggle_item_html_string("barcode-type", "Large", 1)}
-                ${toggle_item_html_string("barcode-type", "Test", 2, true)}
+                ${toggle_item_html_string("barcode-type", "Large", 1, true)}
+                ${" " || "this test option is disabled" || toggle_item_html_string("barcode-type", "Test", 2, true)}
               </div>
             </div>
 
@@ -764,7 +764,7 @@
         zebra_printer.configuration = new Zebra.Printer.Configuration(printer.fake_configuration);
         // Recklessly clobber our new object to keep our fake send method and things
         Object.keys(printer).forEach(x => zebra_printer[x] = printer[x]);
-        console.error('Please disregard a single 500 (Internal Server Error) with localhost. This occurs because the Zebra.Printer() initialization tries to contact the fake Dry Run printer.');
+        console.error('Please disregard a single 500 (Internal Server Error) with localhost. This occurs because the Zebra.Printer() initialization tries to contact the pretend "Dry Run" printer.');
       }
 
       RQ.barcode.printerList.push(zebra_printer);
