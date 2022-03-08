@@ -12,12 +12,13 @@
     RQ.runOnAppLoad = [];
     RQ.runOnModuleChange = [];
     RQ.runOnNewTab = [];
-    
+
     RQ.runOnAppLoad.push(showRWVersionNumber);
     RQ.runOnAppLoad.push(addGlobalApplicationButtons);
     RQ.runOnAppLoad.push(monitorModuleChange);
     RQ.runOnAppLoad.push(interceptCtrl_S);
     RQ.runOnAppLoad.push(addPopupButtons);
+    RQ.runOnAppLoad.push(addCodeMirrorExtensions);
     waitForAppLoad();
     RQ.runOnModuleChange.push({
         test: () => true,
@@ -107,7 +108,7 @@
                 }
             }
         }
-        
+
         // Simulate click on a menu item based on its innerText
         function clickHeaderMenuItem(fieldCaption, menuItemText) {
             let menuItems = Array.from(fieldCaption.querySelectorAll('.columnoptions > .columnoptions-button'));
@@ -351,6 +352,50 @@
                 }
             }
         });
+    }
+
+    /**RentalWorks uses CodeMirror for report HTML editors. Searching for text
+     * is a super pain without certain addons. This function includes the addons.
+     */
+    function addCodeMirrorExtensions() {
+        // The codemirror.js script is included in RW like this:
+        // <script type="text/javascript" src="./script2-2019.1.2.208.js"></script>
+        // As of March 2022, this file includes CodeMirror 4.8.0, and addons for XML text formatting, 
+        // code folding, and line numbering. All addons included below should be compatible with v4.8.0.
+
+        // The following code enables the text search addon for CodeMirror text 
+        // editors, such as the ones that make up the HTML View of RentalWorks reports. 
+        // https://codemirror.net/demo/search.html
+        // Keyboard shortcuts are at https://codemirror.net/doc/manual.html#commands
+        // Most notably, use Ctrl+G to Find Next
+        // Note: This doesn't appear to add search functionality to read-only CodeMirror editors. I'm not sure why this is and haven't looked into it.
+
+        // Use githubraw.com as a proxy to satisfy the browser's CORB (cross-origin read blocking) restrictions
+        let codemirror_host_url = "https://cdn.githubraw.com/codemirror/CodeMirror/4.8.0";
+
+        ["/addon/dialog/dialog.js",
+            "/addon/search/searchcursor.js",
+            "/addon/search/search.js"].forEach(path => {
+                var script = document.createElement('script');
+                script.src = codemirror_host_url + path;
+                document.body.appendChild(script);
+            });
+
+        ["/addon/dialog/dialog.css"].forEach(path => {
+            var cssLink = document.createElement('link');
+            cssLink.rel = "stylesheet";
+            cssLink.href = codemirror_host_url + path;
+            document.body.appendChild(cssLink);
+        });
+
+        // Main library is at:
+        // "/lib/codemirror.js"
+        // "/lib/codemirror.css"
+        // The following addons aren't supported in CodeMirror 4.8, but should be included if RW ever upgrades to a newer version. 
+        // "/addon/scroll/annotatescrollbar.js"
+        // "/addon/search/jump-to-line.js"
+        // "/addon/search/matchesonscrollbar.js"
+        // "/addon/search/matchesonscrollbar.css"
     }
 
 })(window.RentalQuirks);
