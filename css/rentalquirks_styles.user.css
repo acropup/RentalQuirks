@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.2.2
+@version        0.2.3
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -28,7 +28,8 @@
      position: absolute;
      left: .1em;
      top: .15em;
-     height: 1em;
+     height: 1.4em;
+    padding-top: .2em;
 
      background-color: #ffb;
      box-shadow: 0.5px 1px 2px 0px #00000080;
@@ -38,7 +39,7 @@
   .app-title .bgothm[data-rwver]::before {
      content: "RW " attr(data-rwver);
      position: absolute;
-     top: 33px;
+     bottom: 2px;
      font-size: 0.74rem;
      left: 50px;
      color: darkorange;
@@ -78,19 +79,6 @@
   html.theme-material .fwmenu.grid .buttonbar .btn {
      margin: 0 0 0 2px;
   }
-
-
-/* Reduce the amount of space the main header takes up
-  #fw-app {
-     --header-hight: 29px;
-  }
-  #fw-app #fw-app-header .header-wrapper {
-     border: none;
-  }
-  #fw-app #fw-app-header .system-update-container {
-     display: none;
-  }
-  */
 
   #fw-app #fw-app-header .app-usercontrols :is(.titlecasebutton, .barcodebutton) {
      display: flex;
@@ -146,18 +134,6 @@
       display: table-cell !important;
   }
   */
-
-  /* Make tab headers double-lined to show more description */
-  html.theme-material .fwtabs[data-version="1"]>.tabs .tab .caption {
-     display: -webkit-box;
-     -webkit-box-orient: vertical;
-     -webkit-line-clamp: 2;
-     white-space: normal;
-     text-overflow: ellipsis;
-     line-height: 1.1em;
-     text-align: center;
-     font-weight: 500;
-  }
  
  /* Barcode UI, piggybacking on RentalWorks' fwpopup styling, but not blocking interaction elsewhere on the page. */
  #rq-barcode.fwpopup {

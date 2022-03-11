@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalWorks Web Custom Styles
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.3
+@version        0.1.4
 @description    For RentalWorks Web, these style customizations improve the look and feel of rentalworksweb.com. These can be used alongside or without the RentalQuirks JavaScript and CSS package.
 @author         Shane Burgess
 @preprocessor   less
@@ -27,6 +27,33 @@
    }
    #fw-app-menu:not(.active) > .app-menu-tray > .menu-lv1object[data-category="Administrator"]::after {
       content: "Admin";
+   }
+  
+  
+/* Reduce the amount of space the main header takes up*/
+   #fw-app {
+     --header-hight: 29px;
+   }
+   #fw-app #fw-app-menu {
+     top: 44px;
+   }
+   #fw-app #fw-app-header .header-wrapper {
+      border: none;
+   }
+   #fw-app #fw-app-header .app-title {
+      padding-bottom:7px;
+   }
+
+   /* Make tab headers double-lined to show more description */
+   html.theme-material .fwtabs[data-version="1"]>.tabs .tab .caption {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      white-space: normal;
+      text-overflow: ellipsis;
+      line-height: 1.1em;
+      text-align: center;
+      font-weight: 500;
    }
    
    & when (@SelectableUI = 1) {
