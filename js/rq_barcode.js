@@ -50,14 +50,14 @@
       name: "Small",
       description: "0.5in x 1.0in",
       validate: (code) => { return /^\d{5}$/.test(code); }, //TODO: validation should be for 6 digits, but it's currently 5 for debugging purposes
-      setup_command: () => "", //TODO: Fill this out
+      setup_command: () => "^XA^SS,,,127^PW228~TA-012^LT-7^LS28^LH0,0~JSN^MNW^MTT^MMT,N^PON^PMN^FWN,0^JMA^PR2,2~SD20^JUS^LRN^CI28^XZ",
       print_command: (code, quantity = 1) => `^XA^XFE:BWL1IN.GRF^FN1^FD${code}^FS^PQ${quantity}^XZ`
     },
     {
       name: "Large",
       description: "1.0in x 2.0in",
       validate: (code) => { return /^\d{6}$/.test(code); },
-      setup_command: () => "^XA^SS,,,214^PW430~TA-012^LT12^LS12^LH0,0~JSN^MNW^MTT^MMT^PON^PMN^FWN,0^LRN^JMA^PR2,2~SD15^JUS^CI28^XZ",
+      setup_command: () => "^XA^SS,,,214^PW430~TA-012^LT12^LS12^LH0,0~JSN^MNW^MTT^MMT,N^PON^PMN^FWN,0^LRN^JMA^PR2,2~SD15^JUS^CI28^XZ",
       print_command: (code, quantity = 1) => `^XA
       ^FT24,48^A0,36,36^FB358,1,0,C^FDBetter Way Lighting\\&^FS
       ^FT67,146^BY4,3,80^BCN,,N,N^FD>;${code}^FS
@@ -69,7 +69,7 @@
       name: "Test",
       description: "1.0in x 2.0in simple test",
       validate: (code) => { return /^\d{1,8}$/.test(code); },
-      setup_command: () => "^XA^SS,,,214^PW430~TA-012^LT12^LS12^LH0,0~JSN^MNW^MTT^MMT^PON^PMN^FWN,0^LRN^JMA^PR2,2~SD15^JUS^CI28^XZ",
+      setup_command: () => "^XA^SS,,,214^PW430~TA-012^LT12^LS12^LH0,0~JSN^MNW^MTT^MMT,N^PON^PMN^FWN,0^LRN^JMA^PR2,2~SD15^JUS^CI28^XZ",
       print_command: (code, quantity = 1) => `^XA
       ^FWR^FT360,16^FB180,1,,L^AS^FD${code}^FS
       ^PQ${quantity}
@@ -639,10 +639,10 @@
         }
         if (hs.paused) {
           abort = false;
+          // Normally the user should press the Pause button on the printer, but this will hopefully make that unnecessary
+          // started_sending ensures that we only do this the first time around so that we don't interfere with the user choosing to pause during printing
           if (!started_sending) {
             notify_user('warning', "Printer is paused, attempting to resume...");
-            // Normally the user should press the Pause button on the printer, but this will hopefully make that unnecessary
-            // We only do this the first time around so that we don't interfere with the user choosing to pause during printing
             RQ.barcode.commands.resumePrinting();
           }
           else {
@@ -673,12 +673,15 @@
           done_sending = true;
         }
         else {
+          // When sending multiple commands, batch them. If we don't, sometimes they arrive out of order, and I think
+          // there's little we can do about that because the BrowserPrint send() command uses TCP, and things might arrive
+          // in the wrong order. At least that's all I can think of that might be causing the out-of-order prints.
+          let command_batch = [];
           for (const queue_item of queue_items) {
             let barcode_value = queue_item?.textContent || "";
             if (validate(barcode_value)) {
-              send_command(print_command(barcode_value, print_copies));
-              total_sent_to_printer++;
-              // The barcode command has been sent to the printer, but it won't print immediately if it gets buffered behind other commands
+              command_batch.add(print_command(barcode_value, print_copies));
+              // The barcode command is sent to the printer, but won't print immediately if it gets buffered behind other commands
               // For now, just mark the item as "sent", and later we'll check if it's made it through the buffer
               queue_item.dataset.printStatus = "sent";
             }
@@ -687,6 +690,11 @@
               // Stop adding to the printer command buffer; we're at the end.
               done_sending = true;
               break;
+            }
+            // Send all batched barcode commands
+            if (command_batch.length) {
+              send_command(command_batch.join('\n'));
+              total_sent_to_printer += command_batch.length;
             }
           }
         }
