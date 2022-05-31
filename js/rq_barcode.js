@@ -680,7 +680,7 @@
           for (const queue_item of queue_items) {
             let barcode_value = queue_item?.textContent || "";
             if (validate(barcode_value)) {
-              command_batch.add(print_command(barcode_value, print_copies));
+              command_batch.push(print_command(barcode_value, print_copies));
               // The barcode command is sent to the printer, but won't print immediately if it gets buffered behind other commands
               // For now, just mark the item as "sent", and later we'll check if it's made it through the buffer
               queue_item.dataset.printStatus = "sent";
