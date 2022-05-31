@@ -25,7 +25,9 @@ function doChangeEvent(elem) {
  * @returns The inputText converted to Title Case, taking into account certain exceptions.
  */
 function toTitleCase(inputText) {
-    let exceptions = ['m', 'in', 'ft', 'KIT', 'RGB', 'RGBW', 'RGBA', 'UV', 'LED', 'SCS', 'SDS', 'CCS', 'CS', 'DS', 'CRI', 'APA', 'IP', 'BWL', 'UL', 'x', 'mAh', 'AC', 'DC', 'PHX', 'XLR', 'DMX', 'QC', 'w'];
+    let exceptions = ['m', 'in', 'ft', 'KIT', 'RGB', 'RGBW', 'RGBA', 'UV', 'LED', 'CRI', 'APA', 
+    'SCS', 'SDS', 'CCS', 'CS', 'DS', 'OBD', 'DIP', 'BWL', 
+    'x', 'mAh', 'w', 'kHz', 'AC', 'DC', 'IP', 'PHX', 'XLR', 'DMX', 'QC', 'NEMA', 'UL'];
     let exlow = exceptions.map(x => x.toLowerCase());
     // Match all words (sequences of letters) and replace with properly cased words
     let result = inputText.replace(/[a-z]+/gi, match => {
