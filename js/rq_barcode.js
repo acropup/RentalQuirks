@@ -691,11 +691,11 @@
               done_sending = true;
               break;
             }
-            // Send all batched barcode commands
-            if (command_batch.length) {
-              send_command(command_batch.join('\n'));
-              total_sent_to_printer += command_batch.length;
-            }
+          }
+          // Send all batched barcode commands
+          if (command_batch.length) {
+            send_command(command_batch.join('\n'));
+            total_sent_to_printer += command_batch.length;
           }
         }
       }
