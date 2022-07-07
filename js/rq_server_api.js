@@ -14,9 +14,9 @@
             "cache-control": "no-cache",
             "content-type": "application/json",
             "pragma": "no-cache",
-            "sec-ch-ua": "\" Not;A Brand\";v=\"99\", \"Google Chrome\";v=\"97\", \"Chromium\";v=\"97\"",
+            "sec-ch-ua": '" Not;A Brand";v="99", "Google Chrome";v="97", "Chromium";v="97"',
             "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-ch-ua-platform": '"Windows"',
             "sec-fetch-dest": "empty",
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-origin",
@@ -60,6 +60,28 @@
                 "mode": "cors",
                 "credentials": "include"
             }).then(res => res.status === 200 ? res.json() : "Error: Update Asset failed with HTTP response " + res.status);
+        };
+
+        /**
+         * Updates the values of specified datafields in a RW Rental Inventory Item
+         * @param inventory_id The InventoryID string that identifies the rental item
+         * @param payload an object of {"key":"value"} pairs where the keys are datafield names, 
+         *                and values are the new values for the field
+         * @returns a Promise that resolves to a JSON representation of the updated Inventory Item object, or
+         *          a String describing an error that occurred.
+         */
+        RQ.update_rental_inventory_item = function (inventory_id, payload) {
+            // Payload requires InventoryId even though it's also specified in the URL
+            payload.InventoryId = inventory_id;
+            return fetch(RW_URL + "api/v1/rentalinventory/" + inventory_id, {
+                "headers": standard_headers,
+                "referrer": RW_URL,
+                "referrerPolicy": "no-referrer-when-downgrade",
+                "body": JSON.stringify(payload),
+                "method": "PUT",
+                "mode": "cors",
+                "credentials": "include"
+            }).then(res => res.status === 200 ? res.json() : "Error: Update Rental Inventory Item failed with HTTP response " + res.status);
         };
     };
     // Wait until the user is logged in, otherwise there won't be a 'sessionStorage.apiToken'
