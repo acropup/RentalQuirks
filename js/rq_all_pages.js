@@ -16,6 +16,7 @@
     RQ.runOnAppLoad.push(showRWVersionNumber);
     RQ.runOnAppLoad.push(addGlobalApplicationButtons);
     RQ.runOnAppLoad.push(monitorModuleChange);
+    RQ.runOnAppLoad.push(enableMultiModuleSupport);
     RQ.runOnAppLoad.push(interceptCtrl_S);
     RQ.runOnAppLoad.push(addPopupButtons);
     RQ.runOnAppLoad.push(addCodeMirrorExtensions);
@@ -267,6 +268,88 @@
 
         // Run tab scripts for future tabs as they're created
         for_child_added(module_tab_pages, '#moduletabs > .tabpages > .tabpage', choose_and_run_tab_scripts);
+    }
+
+    // Allows the user to open the record browser of many modules in their own tabs.
+    // Normal RW behaviour closes all existing tabs if one tries to navigate to a new module.
+    function enableMultiModuleSupport() {
+        // Returns the module tab with the given name, or undefined if none exists.
+        // If there are multiple tabs with the same name, the leftmost tab is returned.
+        let find_first_tab_by_name = function (tab_name) {
+            return Array.from(document.querySelectorAll('#moduletabs > .tabs > .tabcontainer > .tab')).find(tabdiv => tabdiv.dataset.caption === tab_name);
+        };
+    
+        // Opens a tab for the module chosen, specified by the url path that uniquely identifies
+        // a module. All url paths can be found in the window.routes global variable.
+        // Returns the loaded module screen if successful, null if not.
+        let load_module_as_tab = function (module_url_path) {
+            // This code is based off of the RW function FwApplication.prototype.navigateHashChange
+            module_url_path = module_url_path.toLowerCase();
+            let moduleScreen = undefined; // This will contain the kind of object returned by functions like SalesInventoryController.getModuleScreen()
+            let r = window.routes; // routes is a global variable provided by RW, containing the url path and a screen generator for every module.
+            for (let i = 0; i < r.length; i++) {
+                let match = r[i].pattern.exec(module_url_path);
+                if (null != match) {
+                    // module_url_path matches route i, so get module screen
+                    moduleScreen = r[i].action(match);
+                    break;
+                }
+            }
+            if (moduleScreen) {
+                if (typeof program.screens?.[0]?.unload === "function") {
+                    program.screens[0].unload();
+                    program.screens = [];
+                }
+                program.screens[0] = moduleScreen;
+                if (typeof moduleScreen?.load === "function") {
+                    moduleScreen.load();
+                    return moduleScreen;
+                }
+                //Is this necessary?
+                //document.body.scrollTop = 0;
+            }
+            return null;
+        };
+    
+        /**
+         * Ctrl+click an option in the main menu to open that module browser without closing existing tabs.
+         * @param {MouseEvent} clickEvent listening on tbody element of table 
+         */
+        let click_main_menu = function (clickEvent) {
+            // This contains all new tab buttons, and it becomes a problem when we load multiple modules
+            // and end up with many indistinguishable new tab buttons.
+            // We don't do this on app load because this element doesn't exist yet.
+            let new_tab_button_container = document.querySelector('#moduletabs .rightsidebuttons .newtabbutton');
+            if (new_tab_button_container) {
+                new_tab_button_container.style.display = "none";
+            }
+
+            if (clickEvent.type == "click" && clickEvent.ctrlKey) {
+                let target = clickEvent.target;
+                if (target.classList.contains("module")) {
+                    // Get all the module information from this menu element
+                    let url_path = jQuery(target).data('module').navigation; // RW stores the url hash path here
+                    let security_id = target.dataset.securityid;
+                    let module_name = target.innerText;
+                    if (url_path && security_id && module_name) {
+                        // If this module is already open, navigate to that tab
+                        let existing_tab = find_first_tab_by_name(module_name);
+                        if (existing_tab) {
+                            existing_tab.click();
+                            clickEvent.stopPropagation();
+                        }
+                        else {
+                            if (load_module_as_tab(url_path)) {
+                                clickEvent.stopPropagation();
+                            }
+                        }
+                    }
+                }
+            }
+        };
+    
+        let app_menu = document.querySelector('#fw-app-menu');
+        app_menu.addEventListener('click', click_main_menu, { capture: true });
     }
 
     /**
