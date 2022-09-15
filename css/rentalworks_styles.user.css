@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalWorks Web Custom Styles
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.4
+@version        0.1.5
 @description    For RentalWorks Web, these style customizations improve the look and feel of rentalworksweb.com. These can be used alongside or without the RentalQuirks JavaScript and CSS package.
 @author         Shane Burgess
 @preprocessor   less
@@ -41,8 +41,20 @@
       border: none;
    }
    #fw-app #fw-app-header .app-title {
-      padding-bottom:7px;
+      padding-bottom: 7px;
    }
+  
+  /* Make the system update notification less intrusive */
+  .system-update-container {
+    height: 0;
+    align-items: center;
+  }
+  .system-update-container > .system-update-notification {
+    border: 1px solid #bdbdbd;
+  }
+  .system-update-container span {
+    padding: 0 2em 0 3em;
+  }
 
    /* Make tab headers double-lined to show more description */
    html.theme-material .fwtabs[data-version="1"]>.tabs .tab .caption {
