@@ -39,26 +39,6 @@
         runScript: allowCloseModuleTabs
     });
 
-    function click_close_tab(e) {
-        let tab_to_close = e.target.closest('div[data-type="tab"]');
-        let page_id = '#' + tab_to_close.dataset.tabpageid;
-        let page_to_close = document.querySelector('#moduletabs > .tabpages > ' + page_id + ' > .fwcontrol');
-        FwModule.closeForm(jQuery(page_to_close), jQuery(tab_to_close));
-    }
-
-    function allowCloseModuleTabs(new_tabpage) {
-        let new_tab = new_tabpage.closest('#moduletabs').querySelector(`.tabs > .tabcontainer > .tab[data-tabpageid="${new_tabpage.id}"]`);
-        debugger;
-        console.log(new_tab);
-        if (!new_tab.querySelector('.delete')) {
-            let close_button = document.createElement('div');
-            close_button.className = 'delete';
-            close_button.innerHTML = '<i class="material-icons"></i>';
-            new_tab.appendChild(close_button);
-            close_button.addEventListener('click', click_close_tab);
-        }
-    }
-
     function showRWVersionNumber() {
         let logoElem = document.querySelector(".app-title .bgothm");
 
@@ -341,8 +321,9 @@
          * @param {MouseEvent} clickEvent listening on tbody element of table 
          */
         let click_main_menu = function (clickEvent) {
-            // This contains all new tab buttons, and it becomes a problem when we load multiple modules
-            // and end up with many indistinguishable new tab buttons.
+            // This contains all (+) new tab buttons, the kind that you can use to create a new record of the 
+            // active module type. It becomes a problem when we load multiple modules and end up with many indistinguishable
+            // new tab buttons, so we just hide them all, since you can do the same from every BROWSE tab.
             // We don't do this on app load because this element doesn't exist yet.
             let new_tab_button_container = document.querySelector('#moduletabs .rightsidebuttons .newtabbutton');
             if (new_tab_button_container) {
@@ -350,13 +331,14 @@
             }
 
             if (clickEvent.type == "click" && clickEvent.ctrlKey) {
-                let target = clickEvent.target;
-                if (target.classList.contains("module")) {
+                // .module is for all the sub-menu items. .menu-lv1object is for the root items that go directly to a page (Settings and Reports).
+                let menu_item = clickEvent.target.closest('.module, .menu-lv1object');
+                let module_data = jQuery(menu_item).data('module');
+                if (module_data) {
                     // Get all the module information from this menu element
-                    let url_path = jQuery(target).data('module').navigation; // RW stores the url hash path here
-                    let security_id = target.dataset.securityid;
-                    let module_name = target.innerText;
-                    if (url_path && security_id && module_name) {
+                    let url_path = module_data?.navigation; // RW stores the url hash path here
+                    let module_name = module_data?.title;
+                    if (url_path && module_name) {
                         // If this module is already open, navigate to that tab
                         let existing_tab = find_first_tab_by_name(module_name);
                         if (existing_tab) {
@@ -375,6 +357,28 @@
 
         let app_menu = document.querySelector('#fw-app-menu');
         app_menu.addEventListener('click', click_main_menu, { capture: true });
+    }
+
+    // Event handler for clicks on X close buttons that were added to tabs that normally don't have them.
+    function click_close_tab(e) {
+        let tab_to_close = e.target.closest('div[data-type="tab"]');
+        let page_id = '#' + tab_to_close.dataset.tabpageid;
+        let page_to_close = document.querySelector('#moduletabs > .tabpages > ' + page_id + ' > .fwcontrol');
+        FwModule.closeForm(jQuery(page_to_close), jQuery(tab_to_close));
+    }
+
+    // The main tabs for modules (typically Record Browser tabs) don't normally come with X buttons to close them.
+    // This function, called on a new tab, adds a close button if it doesn't already have one.
+    function allowCloseModuleTabs(new_tabpage) {
+        let new_tab = new_tabpage.closest('#moduletabs').querySelector(`.tabs > .tabcontainer > .tab[data-tabpageid="${new_tabpage.id}"]`);
+        console.log(new_tab);
+        if (!new_tab.querySelector('.delete')) {
+            let close_button = document.createElement('div');
+            close_button.className = 'delete';
+            close_button.innerHTML = '<i class="material-icons"></i>';
+            new_tab.appendChild(close_button);
+            close_button.addEventListener('click', click_close_tab);
+        }
     }
 
     /**
