@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalWorks Web Custom Styles
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.4
+@version        0.1.5
 @description    For RentalWorks Web, these style customizations improve the look and feel of rentalworksweb.com. These can be used alongside or without the RentalQuirks JavaScript and CSS package.
 @author         Shane Burgess
 @preprocessor   less
@@ -27,6 +27,11 @@
    }
    #fw-app-menu:not(.active) > .app-menu-tray > .menu-lv1object[data-category="Administrator"]::after {
       content: "Admin";
+   }
+   /* Colour these two top menu items differently, because they go straight to a module rather than opening a menu of options */
+   #fw-app-menu > .app-menu-tray > .menu-lv1object[data-category="Settings"],
+   #fw-app-menu > .app-menu-tray > .menu-lv1object[data-category="Reports"] {
+     background-color: #008dff;
    }
   
   
