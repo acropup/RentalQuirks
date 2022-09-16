@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.2.3
+@version        0.2.4
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -39,8 +39,8 @@
   .app-title .bgothm[data-rwver]::before {
      content: "RW " attr(data-rwver);
      position: absolute;
-     bottom: 2px;
      font-size: 0.74rem;
+     top: 30px;
      left: 50px;
      color: darkorange;
   }
