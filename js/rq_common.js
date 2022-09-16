@@ -40,6 +40,45 @@ function toTitleCase(inputText) {
     return result;
 }
 
+/**Performs a case-insensitive string match where the test text may be split and matched against multiple words.
+ * Every subset of test must begin a match on a capital letter. A space character implies a word break, indicating
+ * that the following character should match an uppercase letter. If phrase has no matches within the first 32 characters,
+ * the match fails even if there would have been a match further on. This is a technical constraint that could be 
+ * worked around if it mattered enough.
+ * 
+ * @param {String} phrase The multi-word string to test against
+ * @param {String} test The string that might match phrase
+ * @returns 0 if match failed, or a 32-bit bitmask with 1's in every position that there was a match.
+ *          No info is returned for matches beyond the 32nd character of an especially long phrase.
+ */
+function multiword_match(phrase, test) {
+    //@CORRECTNESS: This needs backtracking, or maybe to prioritize matching the capital letters. But for our use, it might not be a problem.
+    //ex. phrase="Total Obsession", test="tobs" should match (Total OBSession), but the naive solution might fail (TOtal oBSession).
+    let ti = 0; 
+    let pi = 0;
+    let match_bitfield = 0; //Track the indices of phrase that matched, so that we can do things like bolden the matched letters for the user to see.
+    while (pi < phrase.length && ti < test.length) {
+        if (test[ti].toLowerCase() == phrase[pi].toLowerCase()) {
+            if (pi < 32) { // Javascript bit shifts are limited to 32-bit integers
+                match_bitfield |= 1 << pi;
+            }
+            ti++;
+            pi++;
+        }
+        else {
+            // Spaces in the test text indicate a word break, in which case the next character needs to match a capital letter.
+            while (test[ti] == ' ') { ti++; }
+            // Find the index of the next capital letter, then try to continue matching from there.
+            while (++pi < phrase.length) {
+                let letter = phrase[pi];
+                if (letter != letter.toLowerCase()) break;
+            }
+        }
+    }
+    // We have a full match if we made it through test. If match failed, return 0.
+    return (ti == test.length) ? match_bitfield : 0;
+}
+
 /**
  * Call this on any containing Element to allow descendants of class 'rq-draggable' to be moved 
  * by the mouse when an Element of class 'rq-draghandle' within them is clicked and dragged.
