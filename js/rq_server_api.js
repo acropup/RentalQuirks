@@ -1,9 +1,9 @@
-
+//TODO: move all front-end functions to a different file. server_api.js should only deal with server calls, updates, json queries, etc. it won't do things like open/close tabs.
 
 (function (RQ) {
     'use strict';
     RQ.runOnAppLoad ||= [];
-
+    RQ.api = [];
 
     let init_server_api = function () {
         // Standard headers for fetch() commands to RentalWorks
@@ -39,7 +39,7 @@
          * @returns a Promise that resolves to a JSON representation of the Asset object, or
          *          a String describing an error that occurred.
          */
-        RQ.get_asset = function (item_id) {
+        RQ.api.get_asset = function (item_id) {
             return fetch(RW_URL + "api/v1/item/" + item_id, standard_fetch)
                    .then(res => res.status === 200 ? res.json() : "Error: Get Asset failed with HTTP response " + res.status);
         };
@@ -52,7 +52,7 @@
          * @returns a Promise that resolves to a JSON representation of the updated Asset object, or
          *          a String describing an error that occurred.
          */
-        RQ.update_asset = function (item_id, payload) {
+        RQ.api.update_asset = function (item_id, payload) {
             // Payload requires ItemId even though it's also specified in the URL
             payload.ItemId = item_id;
             return fetch(RW_URL + "api/v1/item/" + item_id, {
@@ -70,7 +70,7 @@
          * @returns a Promise that resolves to a JSON representation of the updated Inventory Item object, or
          *          a String describing an error that occurred.
          */
-        RQ.update_rental_inventory_item = function (inventory_id, payload) {
+        RQ.api.update_rental_inventory_item = function (inventory_id, payload) {
             // Payload requires InventoryId even though it's also specified in the URL
             payload.InventoryId = inventory_id;
             return fetch(RW_URL + "api/v1/rentalinventory/" + inventory_id, {
@@ -80,31 +80,12 @@
             }).then(res => res.status === 200 ? res.json() : "Error: Update Rental Inventory Item failed with HTTP response " + res.status);
         };
 
-        //TODO: move all front-end functions to a different file. server_api.js will only deal with server calls, updates, json queries, etc. it won't do things like open/close tabs.
-        //id_name is the name of the unique ID for this module. For example, InventoryId is the unique ID for RentalInventoryController, and ItemId is the unique ID for AssetController.
-        RQ.search_form_tabs = function (id_name, id_value, activate_tab) {
-            // search for already-open tabs of matching InventoryId, and switch to the first one that matches.
-            let id_info = { datafield: id_name, value: id_value };
-            let form_query = {};
-            form_query[id_name] = id_info;
-            let found_form = FwModule.getFormByUniqueIds(form_query);
-
-            let found_tabpage = false;
-            if (typeof found_form != "undefined" && found_form.length > 0) {
-                found_tabpage = found_form.closest("div.tabpage");
-                if (activate_tab) {
-                    jQuery("#" + found_tabpage.attr("data-tabid")).click();
-                }
-            }
-            return found_tabpage;
-        };
-
-        RQ.open_form_tab = function (module_name, id_value) {
+        RQ.api.open_form_tab = function (module_name, id_value) {
             let controller = window[module_name + "Controller"];
-            let field_names = RQ.module_identifier_names(module_name);
+            let field_names = RQ.api.module_identifier_names(module_name);
             
             // If the form is already open, switch to that tab
-            if (!RQ.search_form_tabs(field_names.id, id_value, true)) {
+            if (!find_form_tab_by_id(field_names.id, id_value, true)) {
                 let ident = {};
                 ident[field_names.id] = id_value;
                 let new_form = controller.loadForm(ident);
@@ -118,14 +99,14 @@
          *          id is the name of the actually-unique identifier that users don't see, but the system uses to specify and query particular records (ex. "InventoryId" or "QuoteId").
          * @returns undefined if module is unknown.
          */
-        RQ.module_identifier_names = function (module_name) {
+        RQ.api.module_identifier_names = function (module_name) {
             let names = undefined;
             const conventional_names = [ "Contract", "Customer", "Deal", "Invoice", "Order", "PickList", "PurchaseOrder", "Quote", "Repair", "Vendor" ];
             const exceptional_names = {
                 Asset:           { code: "BarCode", id: "ItemId" },
                 RentalInventory: { code: "ICode",   id: "InventoryId" },
                 SalesInventory:  { code: "ICode",   id: "InventoryId" },
-                RepairOrder:     { code: "RepairNumber", id: "RepairId" } //HACK: module/repair has caption "Repair Order", so conventional_names doesn't catch it above if using module captions.
+                RepairOrder:     { code: "RepairNumber", id: "RepairId" } //@HACK: module/repair has caption "Repair Order", so conventional_names doesn't catch it above if using module captions.
             };
             if (conventional_names.includes(module_name)) {
                 names = { code: module_name + "Number", id: module_name + "Id" };
@@ -137,13 +118,13 @@
             return names;
         };
 
-        RQ.get_id_from_code = function (module_name, code) {
-            let field_names = RQ.module_identifier_names(module_name);
-            return RQ.lookup_item_by_code(module_name, field_names.code, code)
+        RQ.api.get_id_from_code = function (module_name, code) {
+            let field_names = RQ.api.module_identifier_names(module_name);
+            return RQ.api.lookup_item_by_code(module_name, field_names.code, code)
             .then(res => res?.[field_names.id]);
         };
 
-        RQ.lookup_item_by_code = function (module_name, code_name, code_value) {
+        RQ.api.lookup_item_by_code = function (module_name, code_name, code_value) {
             let controller = window[module_name + "Controller"];
             if (!controller?.apiurl || !code_name) return null;
             let querystring = encodeURI(`filter={"Field":"${code_name}","Op":"=","Value":"${code_value}"}`);

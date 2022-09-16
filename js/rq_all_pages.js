@@ -277,47 +277,8 @@
     // Allows the user to open the record browser of many modules in their own tabs.
     // Normal RW behaviour closes all existing tabs if one tries to navigate to a new module.
     function enableMultiModuleSupport() {
-        // Returns the module tab with the given name, or undefined if none exists.
-        // If there are multiple tabs with the same name, the leftmost tab is returned.
-        let find_first_tab_by_name = function (tab_name) {
-            return Array.from(document.querySelectorAll('#moduletabs > .tabs > .tabcontainer > .tab')).find(tabdiv => tabdiv.dataset.caption === tab_name);
-        };
 
-        // Opens a tab for the module chosen, specified by the url path that uniquely identifies
-        // a module. All url paths can be found in the window.routes global variable.
-        // Returns the loaded module screen if successful, null if not.
-        let load_module_as_tab = function (module_url_path) {
-            // This code is based off of the RW function FwApplication.prototype.navigateHashChange
-            module_url_path = module_url_path.toLowerCase();
-            let moduleScreen = undefined; // This will contain the kind of object returned by functions like SalesInventoryController.getModuleScreen()
-            let r = window.routes; // routes is a global variable provided by RW, containing the url path and a screen generator for every module.
-            for (let i = 0; i < r.length; i++) {
-                let match = r[i].pattern.exec(module_url_path);
-                if (null != match) {
-                    // module_url_path matches route i, so get module screen
-                    moduleScreen = r[i].action(match);
-                    break;
-                }
-            }
-            if (moduleScreen) {
-                //TODO: investigate what these screens are about, and reconsider whether we should be unloading the current one or not.
-                if (typeof program.screens?.[0]?.unload === "function") {
-                    program.screens[0].unload();
-                    program.screens = [];
-                }
-                program.screens[0] = moduleScreen;
-                if (typeof moduleScreen?.load === "function") {
-                    moduleScreen.load();
-                    return moduleScreen;
-                }
-                //Is this necessary?
-                //document.body.scrollTop = 0;
-            }
-            return null;
-        };
-
-        /**
-         * Ctrl+click an option in the main menu to open that module browser without closing existing tabs.
+        /**Ctrl+click an option in the main menu to open that module browser without closing existing tabs.
          * @param {MouseEvent} clickEvent listening on tbody element of table 
          */
         let click_main_menu = function (clickEvent) {
@@ -339,16 +300,10 @@
                     let url_path = module_data?.navigation; // RW stores the url hash path here
                     let module_name = module_data?.title;
                     if (url_path && module_name) {
-                        // If this module is already open, navigate to that tab
-                        let existing_tab = find_first_tab_by_name(module_name);
-                        if (existing_tab) {
-                            existing_tab.click();
+                        // If this module is already open, navigate to that tab. Otherwise, open a new tab
+                        if (find_tab_by_name(module_name, true)
+                            || RQ.load_module_as_tab(url_path)) {
                             clickEvent.stopPropagation();
-                        }
-                        else {
-                            if (load_module_as_tab(url_path)) {
-                                clickEvent.stopPropagation();
-                            }
                         }
                     }
                 }
@@ -358,6 +313,39 @@
         let app_menu = document.querySelector('#fw-app-menu');
         app_menu.addEventListener('click', click_main_menu, { capture: true });
     }
+
+    // Opens a tab for the module chosen, specified by the url path that uniquely identifies
+    // a module. All url paths can be found in the window.routes global variable.
+    // Returns the loaded module screen if successful, null if not.
+    RQ.load_module_as_tab = function (module_url_path) {
+        // This code is based off of the RW function FwApplication.prototype.navigateHashChange
+        module_url_path = module_url_path.toLowerCase();
+        let moduleScreen = undefined; // This will contain the kind of object returned by functions like SalesInventoryController.getModuleScreen()
+        let r = window.routes; // routes is a global variable provided by RW, containing the url path and a screen generator for every module.
+        for (let i = 0; i < r.length; i++) {
+            let match = r[i].pattern.exec(module_url_path);
+            if (null != match) {
+                // module_url_path matches route i, so get module screen
+                moduleScreen = r[i].action(match);
+                break;
+            }
+        }
+        if (moduleScreen) {
+            //TODO: investigate what these screens are about, and reconsider whether we should be unloading the current one or not.
+            if (typeof program.screens?.[0]?.unload === "function") {
+                program.screens[0].unload();
+                program.screens = [];
+            }
+            program.screens[0] = moduleScreen;
+            if (typeof moduleScreen?.load === "function") {
+                moduleScreen.load();
+                return moduleScreen;
+            }
+            //Is this necessary?
+            //document.body.scrollTop = 0;
+        }
+        return null;
+    };
 
     // Event handler for clicks on X close buttons that were added to tabs that normally don't have them.
     function click_close_tab(e) {
@@ -371,7 +359,6 @@
     // This function, called on a new tab, adds a close button if it doesn't already have one.
     function allowCloseModuleTabs(new_tabpage) {
         let new_tab = new_tabpage.closest('#moduletabs').querySelector(`.tabs > .tabcontainer > .tab[data-tabpageid="${new_tabpage.id}"]`);
-        console.log(new_tab);
         if (!new_tab.querySelector('.delete')) {
             let close_button = document.createElement('div');
             close_button.className = 'delete';

@@ -79,6 +79,40 @@ function multiword_match(phrase, test) {
     return (ti == test.length) ? match_bitfield : 0;
 }
 
+/**Returns the module tab (not the tabpage) with the given name, or undefined if none exists.
+ * If there are multiple tabs with the same name, the leftmost tab is returned.
+ */
+function find_tab_by_name (tab_name, activate_tab) {
+    let found_tab = Array.from(document.querySelectorAll('#moduletabs > .tabs > .tabcontainer > .tab')).find(tabdiv => tabdiv.dataset.caption === tab_name);
+    if (found_tab && activate_tab) {
+        found_tab.click();
+    }
+    return found_tab;
+};
+
+/**Returns the tabpage of a form for a particular ID, if it is open. Will also activate the form if activate_tab == true.
+ * @param {*} id_name is the name of the unique ID for this module (ex. 'ItemId' for AssetController, or 'InventoryId' for RentalInventoryController)
+ * @param {*} id_value is the unique ID value being searched for
+ * @param {*} activate_tab is true if the found tab should be made active
+ * @returns the (first from left) FORM tab for id_value
+ */
+function find_form_tab_by_id (id_name, id_value, activate_tab) {
+    // search for already-open tabs of matching InventoryId, and switch to the first one that matches.
+    let id_info = { datafield: id_name, value: id_value };
+    let form_query = {};
+    form_query[id_name] = id_info;
+    let found_form = FwModule.getFormByUniqueIds(form_query);
+
+    let found_tabpage = false;
+    if (typeof found_form != "undefined" && found_form.length > 0) {
+        found_tabpage = found_form.closest("div.tabpage");
+        if (activate_tab) {
+            jQuery("#" + found_tabpage.attr("data-tabid")).click();
+        }
+    }
+    return found_tabpage;
+};
+
 /**
  * Call this on any containing Element to allow descendants of class 'rq-draggable' to be moved 
  * by the mouse when an Element of class 'rq-draghandle' within them is clicked and dragged.

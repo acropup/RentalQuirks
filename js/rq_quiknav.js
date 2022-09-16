@@ -87,7 +87,7 @@
         });
         all_module_data.sort((a, b) => a.caption.length - b.caption.length);
         all_module_data.forEach(module => {
-            let names = RQ.module_identifier_names(module.caption.replaceAll(' ', ''));
+            let names = RQ.api.module_identifier_names(module.caption.replaceAll(' ', ''));
             Object.assign(module, names);
         });
 
@@ -151,21 +151,24 @@
                         let module_name_length = modules[i].dataset.nav.length - 'module/'.length;
                         module_name = module_name.slice(0, module_name_length);
                         //Open the item in a tab, or switch to the tab if it's already opened
-                        RQ.get_id_from_code(module_name, item_code_value)
+                        RQ.api.get_id_from_code(module_name, item_code_value)
                             .then(item_id_value => {
                                 if (item_id_value) {
-                                    RQ.open_form_tab(module_name, item_id_value);
+                                    RQ.api.open_form_tab(module_name, item_id_value);
                                 }
                                 else {
                                     console.warn(`${item_code_name} value ${item_code_value} doesn't exist.`);
-                                    //TODO: notify user in a nicer way
+                                    //TODO: notify user in a nicer way, and potentially searchbox.focus() again
                                     throw Error(`${item_code_name} value ${item_code_value} doesn't exist.`);
                                 }
                             });
                     }
                     else {
-                        //TODO: Open the module's browse page as a tab, preserving existing tabs
-                        location.hash = "#/" + modules[i].dataset.nav;
+                        // If this module is already open, navigate to that tab
+                        if (!find_tab_by_name(modules[i].dataset.caption, true)) {
+                            // Open the module's browse page as a tab, preserving existing tabs
+                            RQ.load_module_as_tab(modules[i].dataset.nav);
+                        }
                     }
                     searchbox.blur();
                     break;
