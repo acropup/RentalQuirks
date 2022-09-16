@@ -98,6 +98,8 @@
 `; //SVG barcode icon
     toolbar.insertAdjacentElement(position, btn);
     btn.addEventListener('click', click_barcode_button);
+    RQ.barcode.byId.barcode_button = btn;
+    update_queue_count();
     return btn;
   }
 
@@ -413,7 +415,7 @@
   }
 
   function update_queue_count() {
-    RQ.barcode.byId.barcode_button.dataset.queueCount = RQ.barcode.byId.barcode_queue.childElementCount;
+    RQ.barcode.byId.barcode_button.dataset.queueCount = RQ.barcode.byId.barcode_queue?.childElementCount || 0;
   }
 
   function click_queue_btn(e) {

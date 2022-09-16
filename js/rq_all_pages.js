@@ -16,6 +16,7 @@
     RQ.runOnAppLoad.push(showRWVersionNumber);
     RQ.runOnAppLoad.push(addGlobalApplicationButtons);
     RQ.runOnAppLoad.push(monitorModuleChange);
+    RQ.runOnAppLoad.push(enableMultiModuleSupport);
     RQ.runOnAppLoad.push(interceptCtrl_S);
     RQ.runOnAppLoad.push(addPopupButtons);
     RQ.runOnAppLoad.push(addCodeMirrorExtensions);
@@ -32,6 +33,10 @@
     RQ.runOnNewTab.push({
         test: (type, controller) => type == 'FORM',
         runScript: injectFormTabUI
+    });
+    RQ.runOnNewTab.push({
+        test: (type, controller) => true,
+        runScript: allowCloseModuleTabs
     });
 
     function showRWVersionNumber() {
@@ -267,6 +272,100 @@
 
         // Run tab scripts for future tabs as they're created
         for_child_added(module_tab_pages, '#moduletabs > .tabpages > .tabpage', choose_and_run_tab_scripts);
+    }
+
+    // Allows the user to open the record browser of many modules in their own tabs.
+    // Normal RW behaviour closes all existing tabs if one tries to navigate to a new module.
+    function enableMultiModuleSupport() {
+
+        /**Ctrl+click an option in the main menu to open that module browser without closing existing tabs.
+         * @param {MouseEvent} clickEvent listening on tbody element of table 
+         */
+        let click_main_menu = function (clickEvent) {
+            // This contains all (+) new tab buttons, the kind that you can use to create a new record of the 
+            // active module type. It becomes a problem when we load multiple modules and end up with many indistinguishable
+            // new tab buttons, so we just hide them all, since you can do the same from every BROWSE tab.
+            // We don't do this on app load because this element doesn't exist yet.
+            let new_tab_button_container = document.querySelector('#moduletabs .rightsidebuttons .newtabbutton');
+            if (new_tab_button_container) {
+                new_tab_button_container.style.display = "none";
+            }
+
+            if (clickEvent.type == "click" && clickEvent.ctrlKey) {
+                // .module is for all the sub-menu items. .menu-lv1object is for the root items that go directly to a page (Settings and Reports).
+                let menu_item = clickEvent.target.closest('.module, .menu-lv1object');
+                let module_data = jQuery(menu_item).data('module');
+                if (module_data) {
+                    // Get all the module information from this menu element
+                    let url_path = module_data?.navigation; // RW stores the url hash path here
+                    let module_name = module_data?.title;
+                    if (url_path && module_name) {
+                        // If this module is already open, navigate to that tab. Otherwise, open a new tab
+                        if (find_tab_by_name(module_name, true)
+                            || RQ.load_module_as_tab(url_path)) {
+                            clickEvent.stopPropagation();
+                        }
+                    }
+                }
+            }
+        };
+
+        let app_menu = document.querySelector('#fw-app-menu');
+        app_menu.addEventListener('click', click_main_menu, { capture: true });
+    }
+
+    // Opens a tab for the module chosen, specified by the url path that uniquely identifies
+    // a module. All url paths can be found in the window.routes global variable.
+    // Returns the loaded module screen if successful, null if not.
+    RQ.load_module_as_tab = function (module_url_path) {
+        // This code is based off of the RW function FwApplication.prototype.navigateHashChange
+        module_url_path = module_url_path.toLowerCase();
+        let moduleScreen = undefined; // This will contain the kind of object returned by functions like SalesInventoryController.getModuleScreen()
+        let r = window.routes; // routes is a global variable provided by RW, containing the url path and a screen generator for every module.
+        for (let i = 0; i < r.length; i++) {
+            let match = r[i].pattern.exec(module_url_path);
+            if (null != match) {
+                // module_url_path matches route i, so get module screen
+                moduleScreen = r[i].action(match);
+                break;
+            }
+        }
+        if (moduleScreen) {
+            //TODO: investigate what these screens are about, and reconsider whether we should be unloading the current one or not.
+            if (typeof program.screens?.[0]?.unload === "function") {
+                program.screens[0].unload();
+                program.screens = [];
+            }
+            program.screens[0] = moduleScreen;
+            if (typeof moduleScreen?.load === "function") {
+                moduleScreen.load();
+                return moduleScreen;
+            }
+            //Is this necessary?
+            //document.body.scrollTop = 0;
+        }
+        return null;
+    };
+
+    // Event handler for clicks on X close buttons that were added to tabs that normally don't have them.
+    function click_close_tab(e) {
+        let tab_to_close = e.target.closest('div[data-type="tab"]');
+        let page_id = '#' + tab_to_close.dataset.tabpageid;
+        let page_to_close = document.querySelector('#moduletabs > .tabpages > ' + page_id + ' > .fwcontrol');
+        FwModule.closeForm(jQuery(page_to_close), jQuery(tab_to_close));
+    }
+
+    // The main tabs for modules (typically Record Browser tabs) don't normally come with X buttons to close them.
+    // This function, called on a new tab, adds a close button if it doesn't already have one.
+    function allowCloseModuleTabs(new_tabpage) {
+        let new_tab = new_tabpage.closest('#moduletabs').querySelector(`.tabs > .tabcontainer > .tab[data-tabpageid="${new_tabpage.id}"]`);
+        if (!new_tab.querySelector('.delete')) {
+            let close_button = document.createElement('div');
+            close_button.className = 'delete';
+            close_button.innerHTML = '<i class="material-icons"></i>';
+            new_tab.appendChild(close_button);
+            close_button.addEventListener('click', click_close_tab);
+        }
     }
 
     /**
