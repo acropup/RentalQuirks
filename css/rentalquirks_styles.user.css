@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.2.5
+@version        0.2.6
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -189,7 +189,14 @@
      font-size: 9px;
      font-weight: bold;
   }
- 
+  
+  /* This contains all (+) new tab buttons, the kind that you can use to create a new record of the 
+     active module type. It becomes a problem when we load multiple modules and end up with many 
+     indistinguishable new tab buttons, so we just hide them all, since you can do the same from every BROWSE tab. */
+  #moduletabs .rightsidebuttons .newtabbutton {
+    display: none;
+  }
+  
  /*[data-rqoutline="1"] {
      outline: 5px red solid;
    

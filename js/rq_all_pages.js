@@ -282,15 +282,6 @@
          * @param {MouseEvent} clickEvent listening on tbody element of table 
          */
         let click_main_menu = function (clickEvent) {
-            // This contains all (+) new tab buttons, the kind that you can use to create a new record of the 
-            // active module type. It becomes a problem when we load multiple modules and end up with many indistinguishable
-            // new tab buttons, so we just hide them all, since you can do the same from every BROWSE tab.
-            // We don't do this on app load because this element doesn't exist yet.
-            let new_tab_button_container = document.querySelector('#moduletabs .rightsidebuttons .newtabbutton');
-            if (new_tab_button_container) {
-                new_tab_button_container.style.display = "none";
-            }
-
             if (clickEvent.type == "click" && clickEvent.ctrlKey) {
                 // .module is for all the sub-menu items. .menu-lv1object is for the root items that go directly to a page (Settings and Reports).
                 let menu_item = clickEvent.target.closest('.module, .menu-lv1object');

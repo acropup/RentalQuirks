@@ -1,0 +1,143 @@
+body:
+
+{
+    "miscfields": {
+        "length": 0
+    },
+    "module": "RentalInventory",
+    "options": {},
+    "orderby": "DescriptionWithAkas asc",
+    "orderbydirection": "",
+    "top": 0,
+    "pageno": 1,
+    "pagesize": 25,
+    "searchfieldoperators": ["like", "<>" ],
+    "searchfields": [ "ICode", "Inactive" ],
+    "searchfieldvalues": [ "100121", "T" ],
+    "searchfieldtypes": [ "text", "Text" ],
+    "searchseparators": [ "," ],
+    "searchcondition": [ "and" ],
+    "searchconjunctions": [],
+    "totalfields": [],
+    "uniqueids": { "WarehouseId": JSON.parse(sessionStorage.warehouse).warehouseid    },
+
+    "boundids": {},
+    "filterfields": {},
+    "activeview": "",
+    "activeviewfields": {
+        "Classification": [
+            "ALL"
+        ]
+    },
+    "requestid": "0c153784-48ea-4da3-8d79-81f6473d1a88", /*requestid might not be necessary*/
+    "clientVersion": "2019.1.2.208"
+}
+
+sessionStorage.warehouse
+
+
+
+
+
+
+
+// Globals to look into:
+window.Constants //lists all the modules, nav url's, and their id's, among other things
+window.FwApplicationTree.tree
+window.FwApplicationTree
+window.masterController
+
+#moduletabs.fwcontrol.FwTabs
+data-version="1" means tabs are styled horizontal along the top
+data-version="2" means tabs are styled vertical along the left side
+
+// "Peeks" are (I think) the magnifying glass buttons you have on validated fields that bring up a list of valid values
+
+//The easy way to open the main screen (usually a BROWSE) of a module is like this:
+InventoryRetireUtilityController.getModuleScreen().load()
+
+//But if we want more options, the code below is better.
+//This code is inspired by functions like Warehouse.prototype.openBrowse()
+//Problem with this right now: It doesn't work with every module
+open_browser = function (module_name, tab_name, allow_close, activate_tab) {
+    let browse = FwBrowse.loadBrowseFromTemplate(module_name);
+    FwModule.openBrowse(browse);
+    FwModule.openModuleTab(browse, tab_name, allow_close, "BROWSE", activate_tab);
+    FwBrowse.databind(browse);
+    FwBrowse.screenload(browse);
+}
+// Example usage:
+open_browser("RentalInventory", "Rental Inventory", true, true);
+
+
+
+
+// To open a browse tab
+let open_browse_tab = function (module_name) {
+    let controller = window[module_name + "Controller"];
+    let browse_tab = controller.openBrowse();
+    browse_tab[0].dataset.newtab = "false"; // Prevents the addition of another (+) button to create a new item
+    FwModule.openModuleTab(browse_tab, controller.caption, true, "BROWSE", true);
+    FwBrowse.databind(browse_tab);
+    FwBrowse.screenload(browse_tab);
+}
+// To open a form tab
+//***I think this needs parameters passed to it or some kind of initialization routine to be called */
+let open_form_tab = function (module_name) {
+    let controller = window[module_name + "Controller"];
+    let form_tab = controller.openForm("EDIT");
+    FwModule.openModuleTab(form_tab, controller.caption, true, "FORM", true);
+    controller.afterLoad(form_tab);
+}
+// Create a new item of a particular type
+let new_form_tab = function (module_name) {
+    let controller = window[module_name + "Controller"];
+    let form_tab = controller.openForm("NEW");
+    FwModule.openModuleTab(form_tab, controller.caption, true, "FORM", true);
+}
+
+
+
+
+let form_tab = CustomerController.loadForm({CustomerId: "00002D6J"});
+FwModule.openModuleTab(form_tab, form_tab[0].dataset.caption + " (loading)", true, "FORM", true);
+
+
+// Use a shim to force new tabs to have a close button, a custom name, or not come to foreground when opened
+FwModule.openModuleTab_actual = FwModule.openModuleTab;
+FwModule.openModuleTab_shim = function (browse, tab_name, allow_close, "BROWSE", activate_tab) {
+    return FwModule.openModuleTab_actual(browse, tab_name, allow_close, "BROWSE", activate_tab);
+};
+FwModule.openModuleTab = FwModule.openModuleTab_shim;
+
+
+
+
+
+// FwApplication.prototype.navigateHashChange is where all open tabs are closed when a module is changed
+// let f = result from a getModuleScreen() call
+// this.screens[0].unload(),
+// this.screens = []),
+// this.screens[0] = f,
+
+analyze
+categorize
+hypothesize
+generalize
+use your eyes
+criticize
+
+actualize
+agonize
+sensitize
+synchronize
+internalize
+evangelize
+galvanize
+hypnotize
+idealize
+legitimize
+lobotomize
+localize
+mechanize
+metastasize

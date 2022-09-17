@@ -87,8 +87,10 @@
         });
         all_module_data.sort((a, b) => a.caption.length - b.caption.length);
         all_module_data.forEach(module => {
-            let names = RQ.api.module_identifier_names(module.caption.replaceAll(' ', ''));
-            Object.assign(module, names);
+            let module_name = RQ.api.get_module_name(module);
+            module['name'] = module_name;
+            let identifier_names = RQ.api.module_identifier_names(module.caption.replaceAll(' ', ''));
+            Object.assign(module, identifier_names);
         });
 
         let make_elem = function (tag_name, class_name, inner_html) {
@@ -137,19 +139,17 @@
 
                     let modifier_char = searchbox.value.trim().slice(-1);
                     if (modifier_char == '!') {
-                        // Go to module, closing all currently open tabs
+                        // Go directly to module in the traditional way, closing all currently open tabs
                         location.hash = "#/" + modules[i].dataset.nav;
                     }
                     else if (modifier_char == '+') {
-                        //TODO: Open a new form page for the selected module. Will have to investigate for what kinds of modules this works.
-
+                        //Open a new form page for the selected module. This should only work for modules that actually have creatable records.
+                        //@incomplete: Will have to investigate for what kinds of modules this works.
+                        RQ.api.new_record_tab(modules[i].dataset.name);
                     }
                     else if (item_code_name && item_code_value) {
                         //open the item, specified by its code
-                        let module_name = modules[i].dataset.caption.replace(' ', '');
-                        //Special handling because RepairController has caption "Repair Order"
-                        let module_name_length = modules[i].dataset.nav.length - 'module/'.length;
-                        module_name = module_name.slice(0, module_name_length);
+                        let module_name = modules[i].dataset.name;
                         //Open the item in a tab, or switch to the tab if it's already opened
                         RQ.api.get_id_from_code(module_name, item_code_value)
                             .then(item_id_value => {
@@ -166,7 +166,7 @@
                     else {
                         // If this module is already open, navigate to that tab
                         if (!find_tab_by_name(modules[i].dataset.caption, true)) {
-                            // Open the module's browse page as a tab, preserving existing tabs
+                            // Otherwise, open the module's browse page as a tab, preserving existing tabs
                             RQ.load_module_as_tab(modules[i].dataset.nav);
                         }
                     }

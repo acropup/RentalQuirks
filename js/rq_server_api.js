@@ -92,6 +92,16 @@
                 FwModule.openModuleTab(new_form, new_form.attr("data-caption") + " (loading)", !0, "FORM", !0);
             }
         };
+
+        RQ.api.new_record_tab = function (module_name) {
+            if ("function" == typeof window[module_name + "Controller"].openForm) {
+                let new_form = window[module_name + "Controller"].openForm("NEW");
+                FwModule.openModuleTab(new_form, "New " + new_form.attr("data-caption"), !0, "FORM", !0);
+            }
+            else {
+                throw Error(`You cannot create a new item in the ${module_name} module.`);
+            }
+        };
         
         /**Given a module name (ex. "RentalInventory" or "Quote"), returns an object with that module's item code name and id name.
          * @returns an object with two properties: code and id.
@@ -117,6 +127,25 @@
             names || console.warn(`Identifier field names are unknown for module "${module_name}"`);
             return names;
         };
+
+        /**The module caption is the name of a module's root tab. The module name is what you find in 
+         * the data-name attribute of module tabs, or in the module's hash navigation string.
+         * Most often, module name is simply the caption with whitespace stripped, but there are
+         * exceptions, which this function is meant to handle. These should not be confused with the
+         * controller name, which is always `${module_name}Controller`, or the hash path, which
+         * is always `#/module/${module_name}`.
+         * @incomplete I have not found or recreated a complete mapping of caption to name yet,
+         * so there are still a few modules for which this will not generate the correct name.
+         * @param {String} module_info an object resembling those within window.masterController.navigation
+         * @returns a string such as "RentalInventory" or "Repair"
+         */
+        RQ.api.get_module_name = function (module_info) {
+            let module_name = module_info.caption.replace(' ', '');
+            //Special handling because RepairController has caption "Repair Order" and hash path #/module/repair
+            let module_name_length = module_info.nav.length - 'module/'.length;
+            module_name = module_name.slice(0, module_name_length);
+            return module_name;
+        }
 
         RQ.api.get_id_from_code = function (module_name, code) {
             let field_names = RQ.api.module_identifier_names(module_name);
