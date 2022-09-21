@@ -83,7 +83,7 @@
         RQ.api.open_form_tab = function (module_name, id_value) {
             let controller = window[module_name + "Controller"];
             let field_names = RQ.api.module_identifier_names(module_name);
-            
+
             // If the form is already open, switch to that tab
             if (!find_form_tab_by_id(field_names.id, id_value, true)) {
                 let ident = {};
@@ -102,7 +102,7 @@
                 throw Error(`You cannot create a new item in the ${module_name} module.`);
             }
         };
-        
+
         /**Given a module name (ex. "RentalInventory" or "Quote"), returns an object with that module's item code name and id name.
          * @returns an object with two properties: code and id.
          *          code is the name of the mostly-unique identifier that users see, and that is printed on documents (ex. "ICode" or "QuoteNumber").
@@ -113,9 +113,9 @@
             let names = undefined;
             const conventional_names = [ "Contract", "Customer", "Deal", "Invoice", "Order", "PickList", "PurchaseOrder", "Quote", "Repair", "Vendor" ];
             const exceptional_names = {
-                Asset:           { code: "BarCode", id: "ItemId" },
-                RentalInventory: { code: "ICode",   id: "InventoryId" },
-                SalesInventory:  { code: "ICode",   id: "InventoryId" },
+                Asset:           { code: "BarCode",      id: "ItemId" },
+                RentalInventory: { code: "ICode",        id: "InventoryId" },
+                SalesInventory:  { code: "ICode",        id: "InventoryId" },
                 RepairOrder:     { code: "RepairNumber", id: "RepairId" } //@HACK: module/repair has caption "Repair Order", so conventional_names doesn't catch it above if using module captions.
             };
             if (conventional_names.includes(module_name)) {
@@ -133,37 +133,54 @@
          * Most often, module name is simply the caption with whitespace stripped, but there are
          * exceptions, which this function is meant to handle. These should not be confused with the
          * controller name, which is always `${module_name}Controller`, or the hash path, which
-         * is always `#/module/${module_name}`.
-         * @incomplete I have not found or recreated a complete mapping of caption to name yet,
-         * so there are still a few modules for which this will not generate the correct name.
+         * is usually `#/module/${module_name}`.
          * @param {String} module_info an object resembling those within window.masterController.navigation
          * @returns a string such as "RentalInventory" or "Repair"
          */
         RQ.api.get_module_name = function (module_info) {
-            let module_name = module_info.caption.replace(' ', '');
-            //Special handling because RepairController has caption "Repair Order" and hash path #/module/repair
-            let module_name_length = module_info.nav.length - 'module/'.length;
-            module_name = module_name.slice(0, module_name_length);
+            let module_name = module_info.caption;
+            const exceptional_names = {
+                'Asset': 'Asset',
+                'Complete QC': 'CompleteQc',
+                'Change I-Code': 'ChangeICodeUtility',
+                'System Update': 'SystemUpdate',
+                'Process Invoices': 'InvoiceProcessBatch',
+                'Process Receipts': 'ReceiptProcessBatch',
+                'Report Styling / CSS': 'CustomReportCss',
+                'Process Vendor Invoices': 'VendorInvoiceProcessBatch',
+            };
+            let exceptional_name = exceptional_names[module_name];
+            if (exceptional_name) {
+                module_name = exceptional_name;
+            }
+            else {
+                module_name = module_name.replaceAll(/[- \/]/g, '');
+                // Even for the general case, we have special handling for things like 
+                //   RepairController: has caption "Repair Order" and hash path #/module/repair
+                //   PluginController: has caption "Plugins" and hash path #/module/plugin
+                let module_name_length = module_info.nav.length - 'module/'.length;
+                module_name = module_name.slice(0, module_name_length);
+            }
             return module_name;
-        }
+        };
 
         RQ.api.get_id_from_code = function (module_name, code) {
             let field_names = RQ.api.module_identifier_names(module_name);
             return RQ.api.lookup_item_by_code(module_name, field_names.code, code)
-            .then(res => res?.[field_names.id]);
+                .then(res => res?.[field_names.id]);
         };
 
         RQ.api.lookup_item_by_code = function (module_name, code_name, code_value) {
             let controller = window[module_name + "Controller"];
             if (!controller?.apiurl || !code_name) return null;
             let querystring = encodeURI(`filter={"Field":"${code_name}","Op":"=","Value":"${code_value}"}`);
-            
+
             return fetch(RW_URL + controller.apiurl + "?" + querystring, standard_fetch)
-            .then(res => {
-                if (res.status == 200) return res.json();
-                throw `Error: ${code_name} lookup failed with HTTP response ${res.status}`;
-            })
-            .then(res => res?.Items?.[0]);
+                .then(res => {
+                    if (res.status == 200) return res.json();
+                    throw `Error: ${code_name} lookup failed with HTTP response ${res.status}`;
+                })
+                .then(res => res?.Items?.[0]);
             //TODO: Should we make sure that (res.TotalItems == 1)?
         };
 

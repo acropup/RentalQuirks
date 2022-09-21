@@ -1,5 +1,4 @@
 //TODO: rq-kbd-shortcut becomes invisible when searchbox gains focus, but still exists and gets in the way of mouse clicks
-//TODO: implement ! and + modifiers
 //TODO: allow filter text before or after itemcode
 
 (function (RQ) {
@@ -129,51 +128,47 @@
      * '?', and Up/Down Arrow keys. Text entry is handled by quiknav_input_handler(e). */
     function quiknav_keydown (e) {
         let searchbox = RQ.quiknav.searchbox;
-        let x = create('asdf');
         let modules = RQ.quiknav.modules;
         if (!e.repeat && e.key == 'Enter') {
-            for (let i = 0; i < modules.length; i++) {
-                if (modules[i].classList.contains('selected')) {
-                    let item_code_name = modules[i].dataset.code;
-                    let item_code_value = RQ.quiknav.popup.dataset.itemCode;
+            let selected_module = modules.find(m => m.classList.contains('selected'));
+            if (!selected_module) return;
+            let item_code_name = selected_module.dataset.code;
+            let item_code_value = RQ.quiknav.popup.dataset.itemCode;
 
-                    let modifier_char = searchbox.value.trim().slice(-1);
-                    if (modifier_char == '!') {
-                        // Go directly to module in the traditional way, closing all currently open tabs
-                        location.hash = "#/" + modules[i].dataset.nav;
-                    }
-                    else if (modifier_char == '+') {
-                        //Open a new form page for the selected module. This should only work for modules that actually have creatable records.
-                        //@incomplete: Will have to investigate for what kinds of modules this works.
-                        RQ.api.new_record_tab(modules[i].dataset.name);
-                    }
-                    else if (item_code_name && item_code_value) {
-                        //open the item, specified by its code
-                        let module_name = modules[i].dataset.name;
-                        //Open the item in a tab, or switch to the tab if it's already opened
-                        RQ.api.get_id_from_code(module_name, item_code_value)
-                            .then(item_id_value => {
-                                if (item_id_value) {
-                                    RQ.api.open_form_tab(module_name, item_id_value);
-                                }
-                                else {
-                                    console.warn(`${item_code_name} value ${item_code_value} doesn't exist.`);
-                                    //TODO: notify user in a nicer way, and potentially searchbox.focus() again
-                                    throw Error(`${item_code_name} value ${item_code_value} doesn't exist.`);
-                                }
-                            });
-                    }
-                    else {
-                        // If this module is already open, navigate to that tab
-                        if (!find_tab_by_name(modules[i].dataset.caption, true)) {
-                            // Otherwise, open the module's browse page as a tab, preserving existing tabs
-                            RQ.load_module_as_tab(modules[i].dataset.nav);
+            let modifier_char = searchbox.value.trim().slice(-1);
+            if (modifier_char == '!') {
+                // Go directly to module in the traditional way, closing all currently open tabs
+                location.hash = "#/" + selected_module.dataset.nav;
+            }
+            else if (modifier_char == '+') {
+                //Open a new form page for the selected module. This should only work for modules that actually have creatable records.
+                //@incomplete: Will have to investigate for what kinds of modules this works.
+                RQ.api.new_record_tab(selected_module.dataset.name);
+            }
+            else if (item_code_name && item_code_value) {
+                //open the item, specified by its code
+                let module_name = selected_module.dataset.name;
+                //Open the item in a tab, or switch to the tab if it's already opened
+                RQ.api.get_id_from_code(module_name, item_code_value)
+                    .then(item_id_value => {
+                        if (item_id_value) {
+                            RQ.api.open_form_tab(module_name, item_id_value);
                         }
-                    }
-                    searchbox.blur();
-                    break;
+                        else {
+                            console.warn(`${item_code_name} value ${item_code_value} doesn't exist.`);
+                            //TODO: notify user in a nicer way, and potentially searchbox.focus() again
+                            throw Error(`${item_code_name} value ${item_code_value} doesn't exist.`);
+                        }
+                    });
+            }
+            else {
+                // If this module is already open, navigate to that tab
+                if (!find_tab_by_name(selected_module.dataset.caption, true)) {
+                    // Otherwise, open the module's browse page as a tab, preserving existing tabs
+                    RQ.load_module_as_tab(selected_module.dataset.nav);
                 }
             }
+            searchbox.blur();
             e.preventDefault();
         }
         else if (e.key == 'Escape') {
@@ -186,7 +181,7 @@
             e.preventDefault();
         }
         else if (e.key == 'ArrowDown') {
-            // Select the next visible module, with wrapping
+            // Select the next *visible* module, with wrapping
             let select_index = undefined;
             let found_selected = false;
             for (let i = 0; i < modules.length; i++) {
@@ -210,7 +205,7 @@
             e.preventDefault();
         }
         else if (e.key == 'ArrowUp') {
-            // Select the previous visible module, with wrapping
+            // Select the previous *visible* module, with wrapping
             let select_index = undefined;
             let found_selected = false;
             //@CutnPaste ArrowUp and ArrowDown are identical except for the direction of the for loop
@@ -286,6 +281,7 @@
         }
         RQ.quiknav.popup.dataset.queryText = query_text;
         if (query_text.length == 0) {
+            // Un-bold and show all entries
             modules.forEach(module => module.children[1].innerHTML = module.dataset.caption);
             RQ.quiknav.popup.querySelector('.rq-no-results').classList.add('hidden');
             return;
