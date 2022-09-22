@@ -261,12 +261,14 @@
         //BUG: VendorNumber seems to be any sort of string, contains spaces and letters, so we're not properly identifying that here.
         // Distinguish between filter string and itemcode here
         // Assume that any word containing a digit is an item code, because currently there are no captions with digits in them.
-        let match = /^(?<filter>[a-z]+\b)(?<mod>[!?+]?) *(?<code>\b[-a-z0-9 ]+)?$/i.exec(quiktext)?.groups;
+        let match = /^(?:(?<filter>[a-z]+\b)(?<mod>[!?+]?))? *(?<code>\b[-a-z0-9 ]+)?$/i.exec(quiktext)?.groups;
         let query_text = match?.filter ?? "";
         let modifier = match?.mod ?? ""; //The modifiers '!' and '+' only matter when submitting (see quiknav_keydown()).
-        RQ.quiknav.popup.dataset.itemCode = match?.code ?? "";
-
-        let force_show_all = query_text.length == 0 || modifier == '?';
+        let item_code = match?.code ?? "";
+        let has_query_text = query_text.length > 0;
+        let has_item_code = item_code.length > 0;
+        
+        let force_show_all = !has_query_text && !has_item_code || modifier == '?';
         if (force_show_all) {
             // Question mark is also checked in quiknav_keydown(), and is arguably unnecessary here
             // Show all modules and select the first item
@@ -276,54 +278,62 @@
         }
         RQ.quiknav.popup.querySelector('.rq-help').classList.toggle('hidden', modifier != '?');
 
-        if (RQ.quiknav.popup.dataset.queryText == query_text) {
+        let query_text_changed = RQ.quiknav.popup.dataset.queryText == query_text;
+        let item_code_presence_changed = !!RQ.quiknav.popup.dataset.itemCode ^ !!item_code;
+        RQ.quiknav.popup.dataset.itemCode = item_code;
+        if (query_text_changed && !item_code_presence_changed) {
+            // Early exit if query_text didn't change, or if the presence of an item_code didn't change
             return;
         }
         RQ.quiknav.popup.dataset.queryText = query_text;
-        if (query_text.length == 0) {
+        if (!has_query_text && !has_item_code) {
             // Un-bold and show all entries
             modules.forEach(module => module.children[1].innerHTML = module.dataset.caption);
-            RQ.quiknav.popup.querySelector('.rq-no-results').classList.add('hidden');
+            RQ.quiknav.popup.querySelector('.rq-no-results').classList.remove('hidden');
             return;
         }
 
         let match_count = 0;
         modules.forEach(module => {
             let caption = module.dataset.caption;
-            let match = multiword_match(caption, query_text);
-            if (!match && !module.classList.contains('hidden')) {
-                // Not strictly necessary to reset the caption when hiding it, but it doesn't hurt
-                module.children[1].innerHTML = caption;
-            }
+            let accepts_code = !!module.dataset.code;
+            let match_mask = multiword_match(caption, query_text);
+            let failed_match = has_query_text && !match_mask;
+            let was_visible = !module.classList.contains('hidden');
             module.classList.remove('selected');
-            module.classList.toggle('hidden', !(match || force_show_all));
-            if (match) {
-                if (match_count == 0) {
-                    module.classList.add('selected');
-                    module.scrollIntoView({ block: "nearest" });
+            module.classList.toggle('hidden', !(force_show_all || (!failed_match && (accepts_code || !has_item_code))));
+            if (failed_match) {
+                // Not strictly necessary to reset the caption when hiding it, but it doesn't hurt
+                if (was_visible) {
+                    module.children[1].innerHTML = caption;
                 }
-                match_count++;
-                // Embolden the letters that were matched, using the match mask
-                let builder = [];
-                let bolding = false;
-                while (match && caption.length > 0) {
-                    if (bolding != (match & 1)) {
-                        bolding = !bolding;
-                        builder.push(bolding ? '<b>' : '</b>');
-                    }
-                    builder.push(caption[0]);
-                    caption = caption.substring(1);
-                    match >>= 1;
-                }
-                if (bolding) {
-                    builder.push('</b>');
-                }
-                if (caption.length) {
-                    builder.push(caption);
-                }
-                let bolded_match = builder.join('');
-                module.children[1].innerHTML = bolded_match;
+                return;
             }
+            if (match_count == 0) {
+                module.classList.add('selected');
+                module.scrollIntoView({ block: "nearest" });
+            }
+            match_count++;
+            // Embolden the letters that were matched, using the match mask
+            let builder = [];
+            let bolding = false;
+            while (match_mask && caption.length > 0) {
+                if (bolding != (match_mask & 1)) {
+                    bolding = !bolding;
+                    builder.push(bolding ? '<b>' : '</b>');
+                }
+                builder.push(caption[0]);
+                caption = caption.substring(1);
+                match_mask >>= 1;
+            }
+            if (bolding) {
+                builder.push('</b>');
+            }
+            if (caption.length) {
+                builder.push(caption);
+            }
+            let bolded_match = builder.join('');
+            module.children[1].innerHTML = bolded_match;
         });
         RQ.quiknav.popup.querySelector('.rq-no-results').classList.toggle('hidden', match_count > 0);
     };
