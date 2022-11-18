@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalWorks Web Custom Styles
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.7
+@version        0.1.8
 @description    For RentalWorks Web, these style customizations improve the look and feel of rentalworksweb.com. These can be used alongside or without the RentalQuirks JavaScript and CSS package.
 @author         Shane Burgess
 @preprocessor   less
@@ -109,6 +109,21 @@
   .fwpopup .fwform[data-popupform="true"] {
     height: 85vh !important;
     outline: red 3px solid;
+  }
+  .fwpopup .fwcontainer[data-controller="HandlebarsTemplateController"]{
+    min-height: calc(100vh - 132px) !important;
+    height: unset !important;
+    width: 85vw !important;
+    overflow: auto !important;
+  }
+  .fwpopup .fwcontainer[data-controller="HandlebarsTemplateController"] .fwform-section[data-caption="Handlebars Template"] .CodeMirror.cm-s-default {
+    height: calc(100vh - 430px) !important;
+  }
+  .fwpopup .fwcontainer[data-controller="HandlebarsTemplateController"] .fwform-section[data-caption="Handlebars Template"] .CodeMirror.cm-s-default .CodeMirror-gutters {
+    min-height: calc(100vh - 430px) !important;
+  }
+  .fwform-section[data-caption="Handlebars Template"] + .flexcolumn .fwform-section-body > .modulefields {
+    max-height: calc(100vh - 430px) !important;
   }
    
    div[data-controller="InvoiceController"] > .fwform-body .tabpage.active[id^="gldistributiontabpage"] div[data-grid="GlDistributionGrid"] tbody:empty::after {
