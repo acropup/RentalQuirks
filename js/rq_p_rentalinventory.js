@@ -250,7 +250,7 @@
         if (clickEvent.target.tagName == 'INPUT' || clickEvent.target.tagName == "TEXTAREA") {
             if (clickEvent.type == "click") {
                 let containingPage = this;
-                let wrapperDiv = clickEvent.path.find((elem) => elem.classList.contains('fwformfield')); //TODO: classList is undefined sometimes???
+                let wrapperDiv = clickEvent.composedPath().find((elem) => elem.classList.contains('fwformfield')); //TODO: classList is undefined sometimes???
                 let fieldName = wrapperDiv.dataset.datafield;
 
                 if (wrapperDiv.classList.toggle('rqselected')) {

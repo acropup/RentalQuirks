@@ -128,14 +128,14 @@
         // Right click brings up menu, just like default RentalWorks left click behaviour.
         function leftClickHeaderRow(clickEvent) {
             if (clickEvent.button != 0) return true;
-            let iHeaderMenu = clickEvent.path.findIndex(x => x.classList?.contains('columnoptions'));
+            let iHeaderMenu = clickEvent.composedPath().findIndex(x => x.classList?.contains('columnoptions'));
             if (iHeaderMenu >= 0) {
                 // Clicked within the header sort/filter menu
                 // Let the event get handled as usual
                 return true;
             }
             else {
-                let headerCaption = clickEvent.path.find(x => x.classList?.contains('fieldcaption'));
+                let headerCaption = clickEvent.composedPath().find(x => x.classList?.contains('fieldcaption'));
                 if (headerCaption) { // Clicked on the header (not on the menu, not on the search field)
                     // Prevent menu from being opened
                     clickEvent.stopPropagation();
@@ -163,7 +163,7 @@
         // This is how right click is handled, not through 'click' or 'auxclick' events
         function rightClickHeaderRow(clickEvent) {
             if (clickEvent.button == 2) { // Only handle contextmenu events caused by right clicking (as opposed to Shift+F10 or the context menu key)
-                let headerCaption = clickEvent.path.find(x => x.classList?.contains('fieldcaption'));
+                let headerCaption = clickEvent.composedPath().find(x => x.classList?.contains('fieldcaption'));
                 if (!headerCaption || headerCaption.classList.contains('active')) {
                     // Header menu is already active, so do nothing and let the browser's right click menu come up.
                     return true;
@@ -184,7 +184,7 @@
                     headerCaption.classList.add('active');
                     // Close this menu if the user clicks outside of it
                     document.addEventListener('click', function clickAway(e) {
-                        if (!e.path.includes(menu)) {
+                        if (!e.composedPath().includes(menu)) {
                             headerCaption.classList.remove('active');
                             menu.style.zIndex = 0;
                         }
