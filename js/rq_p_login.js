@@ -39,8 +39,8 @@
             let pwLength = pwField?.value.length ?? 0;
             // Chrome password manager doesn't expose autofilled password values to javascript without 
             // user interaction, but we can check for the existence of :-webkit-autofill pseudo-class.
-            let unAutofilled = !!document.querySelector(".login-fields #email:-webkit-autofill, .login-fields #email:-internal-autofill-selected");
-            let pwAutofilled = !!document.querySelector(".login-fields #password:-webkit-autofill, .login-fields #password:-internal-autofill-selected");
+            let unAutofilled = !!document.querySelector(".login-fields #email\\:-webkit-autofill, .login-fields #email:-internal-autofill-selected");
+            let pwAutofilled = !!document.querySelector(".login-fields #password\\:-webkit-autofill, .login-fields #password:-internal-autofill-selected");
 
             // The expectation is that a password manager will autofill these fields, but we
             // have to make sure not to interrupt the user if they're typing it manually.
