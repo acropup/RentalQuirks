@@ -20,7 +20,7 @@
     <input id="rq-quiknav" class="fwformfield-value" type="text" placeholder="QuikNav" autocomplete="off">
     <span class="rq-kbd-shortcut" style="position: absolute; right: 0;">Ctrl+/</i>
   </div>
-  <div id="rq-quiknav-popup" class="hidden" data-query-text="">
+  <div id="rq-quiknav-popup" class="hidden" data-query-text="" style="max-height:0px;overflow-y:hidden;">
     <div class="rq-help hidden">Type <span class="rq-kbd-shortcut">?</span> to show this help.
         <hr style="margin: 0.3em 0 0.2em;">
         <b>QuikNav</b> provides rapid keyboard access to any RentalWorks module. Type to filter through the module list (ignoring spaces). You may type entire words, or <b>just the beginnings</b> of each word in the module names. Play around with it if it's not clear!
