@@ -299,9 +299,10 @@
             let accepts_code = !!module.dataset.code;
             let match_mask = multiword_match(caption, query_text);
             let failed_match = has_query_text && !match_mask;
+            failed_match ||= has_item_code && !accepts_code; // also fail any module that doesn't use item codes, if item_code is specified
             let was_visible = !module.classList.contains('hidden');
             module.classList.remove('selected');
-            module.classList.toggle('hidden', !(force_show_all || (!failed_match && (accepts_code || !has_item_code))));
+            module.classList.toggle('hidden', failed_match && !force_show_all);
             if (failed_match) {
                 // Not strictly necessary to reset the caption when hiding it, but it doesn't hurt
                 if (was_visible) {
