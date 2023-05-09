@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalWorks Web Custom Styles
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.8
+@version        0.1.9
 @description    For RentalWorks Web, these style customizations improve the look and feel of rentalworksweb.com. These can be used alongside or without the RentalQuirks JavaScript and CSS package.
 @author         Shane Burgess
 @preprocessor   less
@@ -159,6 +159,20 @@
      }
      &, .panel-heading {
        background-color: rosybrown !important;
+     }
+   }
+
+   /* Provide useful tips */
+   #Country.panel-group.open .search-bar > .record-search {
+     position: relative;
+     
+     &::after {
+       content: "Click [👁 Show Inactive] on the right, to activate more countries.";
+       background: peachpuff;
+       position: absolute;
+       white-space: nowrap;
+       padding: .5em 1em;
+       left: 250px;
      }
    }
 }
