@@ -406,7 +406,8 @@
         let selectionNode = document.getSelection().anchorNode;
         if (!(selectionNode instanceof Element)) return;
 
-        let textField = selectionNode.querySelector('input[type="text"]');
+        // Firefox behaviour selects the INPUT tag, Chromium behaviour selects the parent DIV.
+        let textField = selectionNode.matches('input[type="text"]') ? selectionNode : selectionNode.querySelector('input[type="text"]');
         let oldText = textField?.value;
         if (oldText) {
             let newText = toTitleCase(oldText);
