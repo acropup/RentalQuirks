@@ -32,6 +32,19 @@
             "mode": "cors",
             "credentials": "include"
         };
+        /**This is the Warehouse ID (normally hidden from users) used when editing pricing. Change it
+        * by calling set_active_warehouse().
+        */
+        RQ.api.active_warehouse_id = undefined;
+        /**Sets the active Warehouse using the Warehouse Code. Important for pricing function,
+         * since pricing is specified per warehouse.
+         * @param warehouse_code The warehouse code
+         */
+        RQ.api.set_active_warehouse = function (warehouse_code) {
+            const warehouse_id = RQ.api.get_id_from_code("Warehouse", "WH").then(warehouse_id => {
+                RQ.api.active_warehouse_id = warehouse_id;
+            });
+        };
 
         //TODO: this should probably be replaced by something more generic like get_id_from_code
         /**Gets a RW Asset (any item that is tracked individually, such as by barcode)
@@ -80,6 +93,37 @@
             }).then(res => res.status === 200 ? res.json() : "Error: Update Rental Inventory Item failed with HTTP response " + res.status);
         };
 
+        /**
+         * Sets pricing information for an item. Must specify which warehouse with set_active_warehouse(warehouse_code) first.
+         * warehouse_pricing can include any of the (editable) columns in the item's Warehouse Pricing table.
+         * For SalesInventory, you have: Price, Retail, DefaultCost, RestockingFee, RestockingPercent, MaximumDiscount.
+         * For RentalInventory, you have: DailyRate, WeeklyRate, Week2Rate, MonthlyRate, MaximumDiscount, MinimumDaysPerWeek, UnitValue, ReplacementCost, NoChargePrint.
+         * 
+         * @param {string} module_name specify the item's module, such as "RentalInventory" or "SalesInventory"
+         * @param {string} icode icode of the item to set pricing information
+         * @param {{string:number}} warehouse_pricing an object containing key-value pairs of the pricing field names and their new amounts. Values are numbers or strings (without dollar signs).
+         */
+        RQ.api.update_warehouse_pricing = function (module_name, icode, warehouse_pricing) {
+            // Payload requires InventoryId and WarehouseId even though they're also specified in the URL
+            const warehouse_id = RQ.api.active_warehouse_id;
+            if (warehouse_id === undefined) {
+                throw new Error("Please set target warehouse first with set_active_warehouse(warehouse_code)");
+            }
+            RQ.api.get_id_from_code(module_name, icode).then((item_id) => {
+                let payload = {
+                    "InventoryId": item_id,
+                    "WarehouseId": warehouse_id,
+                    ...warehouse_pricing
+                };
+        
+                fetch(RW_URL + "api/v1/pricing/" + item_id + "~" + warehouse_id, {
+                    ...standard_fetch,
+                    "body": JSON.stringify(payload),
+                    "method": "PUT"
+                }).then(res => res.status === 200 ? res.json() : "Error: Update Pricing failed with HTTP response " + res.status);
+            });
+        };
+
         RQ.api.open_form_tab = function (module_name, id_value) {
             let controller = window[module_name + "Controller"];
             let field_names = RQ.api.module_identifier_names(module_name);
@@ -116,6 +160,7 @@
                 Asset:           { code: "BarCode",      id: "ItemId" },
                 RentalInventory: { code: "ICode",        id: "InventoryId" },
                 SalesInventory:  { code: "ICode",        id: "InventoryId" },
+                Warehouse:       { code: "WarehouseCode",id: "WarehouseId"},
                 RepairOrder:     { code: "RepairNumber", id: "RepairId" } //@HACK: module/repair has caption "Repair Order", so conventional_names doesn't catch it above if using module captions.
             };
             if (conventional_names.includes(module_name)) {
@@ -183,6 +228,8 @@
                 .then(res => res?.Items?.[0]);
             //TODO: Should we make sure that (res.TotalItems == 1)?
         };
+
+        RQ.api.set_active_warehouse("WH"); //"WH" is BWL's only warehouse, so we can activate it by default
 
     };
     // Wait until the user is logged in, otherwise there won't be a 'sessionStorage.apiToken'
