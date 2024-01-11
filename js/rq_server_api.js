@@ -3,7 +3,7 @@
 (function (RQ) {
     'use strict';
     RQ.runOnAppLoad ||= [];
-    RQ.api = [];
+    RQ.api = {};
 
     let init_server_api = function () {
         // Standard headers for fetch() commands to RentalWorks
