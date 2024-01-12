@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.2.8
+@version        0.2.9
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -475,6 +475,22 @@
    cursor: alias !important;
  }
  .barcode-highlights .field[data-browsedatafield="BarCode"] .caption { /* Header caption needs cursor override too */
+   cursor: alias;
+ }
+
+ /* :DisabledClickWorkaround: Workaround for the fact that clicking disabled input elements does not fire a click event in browsers.*/
+ .barcode-highlights .fwformfield[data-datafield="BarCode"] > .fwformfield-control:has(> input.fwformfield-value[disabled]) {
+   position: relative;
+ }
+ /* :DisabledClickWorkaround: */
+ .barcode-highlights .fwformfield[data-datafield="BarCode"] > .fwformfield-control:has(> input.fwformfield-value[disabled])::after {
+   content: "\a0"; /*nbsp*/
+   position:absolute;
+   opacity: 0;
+   left: 0px;
+   right: 0px;
+   top: 0px;
+   bottom: 0px;
    cursor: alias;
  }
    

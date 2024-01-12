@@ -955,10 +955,22 @@
        */
       choose_barcodes_in_ui: function (mouse_event) {
         let click_target = mouse_event.target;
+
+        // It turns out that a disabled input field returns no mouse events if clicked. None at all!
+        // But I want to be able to choose a barcode in the UI, even from an input field that's disabled.
+        // The workaround is to add an ::after pseudo-element to the input's parent, and then detect
+        // the click on the parent itself. The following if-statement detects this scenario, and redefines
+        // the click_target to the disabled input element that we were hoping to click in the first place.
+        // Note: This depends on pseudo-elements defined in rentalquirks_styles.user.css (see :DisabledClickWorkaround:).
+        if (click_target.classList.contains("fwformfield-control") &&
+            click_target.parentElement.dataset["datafield"] == "BarCode") {
+          click_target = click_target.firstElementChild; //This should be the (disabled) INPUT element
+        }
         if (click_target.tagName == "INPUT") {
           click_target = click_target.closest(qs_barcode_input);
           if (!click_target) return;
-          // User clicked an editable barcoded text field, like on Asset forms
+          // User clicked an editable barcoded text field (or the parent::after of
+          // a disabled field (:DisabledClickWorkaround:)), like on Asset forms.
 
           mark_event_handled(mouse_event);
           if (mouse_event.type == 'mousedown') return; // We only stop event propagation during 'mousedown'
