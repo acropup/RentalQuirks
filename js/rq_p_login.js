@@ -69,6 +69,12 @@
                 (pwAutofilled || (pwLength > 0 && document.activeElement != pwField))) {
                 console.log('RentalQuirks auto-login');
                 loginButton.click();
+                // If the click succeeds, a busy spinner will appear. We can use this as evidence of success.
+                let spinner = document.querySelector('.fwoverlay-center.pleasewait');
+                if (spinner) {
+                    // Button was clicked and login is happening. Return true to stop retrying autoLogin().
+                    return true;
+                }
                 // Keep trying until the page changes, because calling click() is ignored until the page has had some user interaction.
                 return false;
             }
