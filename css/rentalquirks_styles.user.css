@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.2.9
+@version        0.2.10
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -13,9 +13,8 @@
    Also, use Tampermonkey (Chrome) or Greasemonkey (Firefox) to run the PoRPoise UserScripts.
 */
 
-@-moz-document regexp("https?://(web\\d\\d)?\\.dbwcloud\\.com/[^/]+/rentalworks/.*"), regexp("https?://[^.]+\\.rentalworksweb\\.com/.*") {
-  /* Example URL to match: https://betterway.rentalworksweb.com/#/module/rentalinventory
-     Old address to match: http://web02.dbwcloud.com/<companyname>/rentalworks/#/module/rentalinventory */
+@-moz-document regexp("https?://[^.]+\\.rentalworksweb\\.com/.*") {
+  /* Example URL to match: https://betterway.rentalworksweb.com/#/module/rentalinventory */
   
   .app-title .rwpurple {
      position: relative;

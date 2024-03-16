@@ -1,11 +1,10 @@
 // ==UserScript==
 // @name         RentalQuirks - Feature enhancements for RentalWorks Web
 // @namespace    https://www.github.com/acropup/RentalQuirks/
-// @version      2.13
+// @version      2.14
 // @description  RentalQuirks is a collection of Javascript and CSS customizations that improve usability, layout, and features of the web-based "RentalWorks" rental management software at rentalworksweb.com
 // @homepageURL  https://www.github.com/acropup/RentalQuirks
 // @author       Shane Burgess
-// @match        *://*.dbwcloud.com/*
 // @match        *://*.rentalworksweb.com/*
 // @grant        none
 // @noframes
@@ -16,6 +15,7 @@
 // @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/rq_server_api.js
 // @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/rq_quiknav.js
 // @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/rq_p_rentalinventory.js
+// @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/rq_reports.js
 // @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/lib/ZebraBrowserPrint/BrowserPrint-3.0.216.min.js
 // @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/lib/ZebraBrowserPrint/BrowserPrint-Zebra-1.0.216.min.js
 // @require      https://raw.githubusercontent.com/acropup/RentalQuirks/master/js/rq_barcode.js

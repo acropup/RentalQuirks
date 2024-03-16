@@ -4,7 +4,7 @@
  * https://support.dbworks.com/hc/en-us/articles/360057454273-The-Records-Browser
  * "Record Form" is the tab in which you view and edit a particular record (say, a rental inventory item).
  * "Grid" is a table, usually within a record form, in which records are added, removed, and edited within the grid. For example, the "Grid" of kit items.
- * https://support.dbworks.com/hc/en-us/articles/360057454273-The-Records-Browser
+ * https://support.dbworks.com/hc/en-us/articles/360057454753-The-Record-Form
  * 
  */
 (function (RQ) {

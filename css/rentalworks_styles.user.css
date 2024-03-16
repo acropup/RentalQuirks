@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalWorks Web Custom Styles
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.10
+@version        0.1.11
 @description    For RentalWorks Web, these style customizations improve the look and feel of rentalworksweb.com. These can be used alongside or without the RentalQuirks JavaScript and CSS package.
 @author         Shane Burgess
 @preprocessor   less
@@ -15,7 +15,7 @@
    https://chrome.google.com/webstore/detail/stylus/clngdbkpkpeebahjckkjfobafhncgmne
 */
 
-@-moz-document regexp("https?://(web\\d\\d)?\\.dbwcloud\\.com/[^/]+/rentalworks/.*"), regexp("https?://[^.]+\\.rentalworksweb\\.com/.*") {
+@-moz-document regexp("https?://[^.]+\\.rentalworksweb\\.com/.*") {
    /* Put names of icons under pinned main menu */
    #fw-app-menu:not(.active) > .app-menu-tray > .menu-lv1object::after {
       content: attr(data-category);
@@ -133,7 +133,7 @@
    }
 }
 
-@-moz-document regexp("https?://(web\\d\\d)?\\.dbwcloud\\.com/[^/]+/rentalworks/#/module/settings"), regexp("https?://[^.]+\\.rentalworksweb\\.com/(training/)?#/module/settings") {
+@-moz-document regexp("https?://[^.]+\\.rentalworksweb\\.com/(training/)?#/module/settings") {
    /* The following is only for the Settings module */
    
    /* Highlight the sections in Settings that I'm always looking for */

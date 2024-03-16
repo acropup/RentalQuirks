@@ -2,16 +2,16 @@
     'use strict';
 
     RQ.runOnPage.push({
-        testPath: (path) => !!path.match(/(\/rentalworks\/)?#\/default$/),
+        testPath: (path) => !!path.match(/#\/default$/),
         runScript: goToLogin
     });
     RQ.runOnPage.push({
-        testPath: (path) => !!path.match(/(\/rentalworks\/)?#\/login$/),
+        testPath: (path) => !!path.match(/#\/login$/),
         runScript: autoLogin
     });
 
-    /**This takes you from the "Sign In to RentalWorks" page (rentalworks/#/default) 
-     * to the actual login page (rentalworks/#/login) where you enter your username and password.*/
+    /**This takes you from the "Sign In to RentalWorks" page (rentalworksweb.com/#/default) to the 
+     * actual login page (rentalworksweb.com/#/login) where you enter your username and password.*/
     function goToLogin () {
         let h = location.href;
         const entry = "/default";
@@ -73,7 +73,7 @@
                 let spinner = document.querySelector('.fwoverlay-center.pleasewait');
                 if (spinner) {
                     // Button was clicked and login is happening. Return true to stop retrying autoLogin().
-                    return true;
+                    return true; //BUG: This isn't sufficient for the case where the user's first page interaction is to click on the Login button. We need to not click the login button if the user does it first.
                 }
                 // Keep trying until the page changes, because calling click() is ignored until the page has had some user interaction.
                 return false;
