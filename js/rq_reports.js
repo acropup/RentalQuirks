@@ -6,21 +6,24 @@
     runScript: add_consolidate_button
   });
 
+  // The request to consolidate rows on reports was made for Deal Reports - Deal Outstanding Items,
+  // but it will likely apply to a number of reports that itemize items by barcode, when all we want
+  // is an itemization by icode.
+
   function add_consolidate_button() {
     //TODO: Should wait until the report is generated before I can add anything
-    //TODO: Add CSS to make the button nicer, and to hide it when printing the page.
     let page = document.getElementById('pageContainer');
 
     let consolidateBtn = document.createElement('div');
-    consolidateBtn.className = 'btn rquirks noprint';
+    consolidateBtn.className = 'btn rquirks report-preview noprint';
     consolidateBtn.title = 'Consolidate Lines';
-    consolidateBtn.innerHTML = '<i class="material-icons">compress</i>'; //From https://fonts.google.com/icons
+    consolidateBtn.innerHTML = 'Consolidate Lines';
     page.insertBefore(consolidateBtn, page.firstChild);
     consolidateBtn.addEventListener('click', () => {
       let first_detail_rows = document.querySelectorAll('tr:not([data-row="detail"]) + tr[data-row="detail"]');
       [...first_detail_rows].forEach(consolidate_rows);
       setTimeout(() => {
-        alert('Done! If the rows did not consolidate, make sure that you have no columns present whose values differ between rows. If you do, customize your report layout and delete those columns.');
+        alert('Done! If the rows did not consolidate, make sure that you have no columns present whose values differ between rows. If there are, you should customize your report layout to delete those columns.');
       }, 200);
     });
     return true;

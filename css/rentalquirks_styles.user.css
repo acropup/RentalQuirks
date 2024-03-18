@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.2.10
+@version        0.2.11
 @description    For RentalWorks Web at rentalworksweb.com, these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -491,6 +491,22 @@
    top: 0px;
    bottom: 0px;
    cursor: alias;
+ }
+ 
+ /* For buttons on report Preview pages, such as for the "Consolidate Lines" feature */
+ .btn.rquirks.report-preview {
+   cursor: pointer;
+   width: fit-content;
+   padding: 0.5em;
+   margin: 0 0 .4em;
+   position: relative;
+   left: calc(50% - 4.5em);
+ }
+ 
+ @media print {
+  .rquirks.noprint {
+    display: none !important;
+  }
  }
    
 }
