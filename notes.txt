@@ -1,42 +1,67 @@
-body:
+FROM ALAN for barcode scanner
 
-{
-    "miscfields": {
-        "length": 0
-    },
-    "module": "RentalInventory",
-    "options": {},
-    "orderby": "DescriptionWithAkas asc",
-    "orderbydirection": "",
-    "top": 0,
-    "pageno": 1,
-    "pagesize": 25,
-    "searchfieldoperators": ["like", "<>" ],
-    "searchfields": [ "ICode", "Inactive" ],
-    "searchfieldvalues": [ "100121", "T" ],
-    "searchfieldtypes": [ "text", "Text" ],
-    "searchseparators": [ "," ],
-    "searchcondition": [ "and" ],
-    "searchconjunctions": [],
-    "totalfields": [],
-    "uniqueids": { "WarehouseId": JSON.parse(sessionStorage.warehouse).warehouseid    },
+var w = null;
+var acc = "";
+var barcode_done = null;
 
-    "boundids": {},
-    "filterfields": {},
-    "activeview": "",
-    "activeviewfields": {
-        "Classification": [
-            "ALL"
-        ]
-    },
-    "requestid": "0c153784-48ea-4da3-8d79-81f6473d1a88", /*requestid might not be necessary*/
-    "clientVersion": "2019.1.2.208"
+function launchWindow(url) {
+  if(w == null) {
+    w = window.open(url);
+  } else {
+    w.location = url;
+  }
 }
 
-sessionStorage.warehouse
+function handleChunk(r, chunk) {
+    var str = new TextDecoder("utf-8").decode(chunk.value);
+    acc += str;
+    var arr = acc.split("\r\n");
+    acc = arr[arr.length - 1];
+    for (var i = 0; i < arr.length - 1; i++) {
+        str = arr[i];
+        console.log(str);
+        barcode_done(str);
+    }
 
+  if(!chunk.done) {
+    r.read().then((chunk) => handleChunk(r, chunk));
+  }
+}
 
+function newWindowHandleBarcode(str) {
+  inventreePut(
+      '/api/barcode/',
+      {
+          barcode: str,
+      },
+      {
+          method: 'POST',
+          success: function(response, status) {
+              console.log(status);
+              console.log(response);
+              if(status == "success" && response.error == undefined) {
+                  launchWindow(response.url);
+              }
+          }
+      }
+  );
+}
 
+function connect() {
+  navigator.serial.requestPort().then( (x) => {
+      x.open({baudRate: 9600}).then( () => {
+          /* x.readable.on('data', (chunk) => {
+              console.log(chunk);
+          }); */
+          var r = x.readable.getReader();
+          r.read().then( (chunk) => {
+              handleChunk(r, chunk);
+          });
+      });
+  });
+}
+
+END FROM ALAN`
 
 
 
