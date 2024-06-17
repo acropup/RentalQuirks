@@ -150,7 +150,8 @@
                 RentalInventory: { code: "ICode",        id: "InventoryId" },
                 SalesInventory:  { code: "ICode",        id: "InventoryId" },
                 Warehouse:       { code: "WarehouseCode",id: "WarehouseId"},
-                RepairOrder:     { code: "RepairNumber", id: "RepairId" } //@HACK: module/repair has caption "Repair Order", so conventional_names doesn't catch it above if using module captions.
+                RepairOrder:     { code: "RepairNumber", id: "RepairId" }, //@HACK: module/repair has caption "Repair Order", so conventional_names doesn't catch it above if using module captions.
+                RetiredHistory:  { code: "BarCode",      id: "RetiredId" } 
             };
             if (conventional_names.includes(module_name)) {
                 names = { code: module_name + "Number", id: module_name + "Id" };
