@@ -49,9 +49,13 @@
     {
       name: "Small",
       description: "0.5in x 1.0in",
-      validate: (code) => { return /^\d{5}$/.test(code); }, //TODO: validation should be for 6 digits, but it's currently 5 for debugging purposes
-      setup_command: () => "^XA^SS,,,127^PW228~TA-012^LT-7^LS28^LH0,0~JSN^MNW^MTT^MMT,N^PON^PMN^FWN,0^JMA^PR2,2~SD20^JUS^LRN^CI28^XZ",
-      print_command: (code, quantity = 1) => `^XA^XFE:BWL1IN.GRF^FN1^FD${code}^FS^PQ${quantity}^XZ`
+      validate: (code) => { return /^\d{6}$/.test(code); }, 
+      setup_command: () => "^XA^SS,,,112^PW228~TA-012^LT-7^LS28^LH0,0~JSN^MNW^MTT^MMT,N^PON^PMN^FWN,0^JMA^PR2,2~SD20^JUS^LRN^CI28^XZ",
+      print_command: (code, quantity = 1) => `^XA
+        ^BY2,3,61
+        ^FT50,85^BCN,,Y,N^FD>;${code}^FS
+        ^PQ${quantity}
+        ^XZ`
     },
     {
       name: "Large",
