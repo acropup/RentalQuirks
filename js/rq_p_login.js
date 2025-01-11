@@ -67,15 +67,24 @@
             // have to make sure not to interrupt the user if they're typing it manually.
             if ((unAutofilled || (unLength > 0 && document.activeElement != unField)) &&
                 (pwAutofilled || (pwLength > 0 && document.activeElement != pwField))) {
+                // Now is an appropriate moment to attempt auto-login. Make one last check in case the user's first page interaction was to click on 
+                // the Sign In button or press Enter. We need to not click the login button if the user does it first. There is a "Please Wait" spinner
+                // that pops up just before the first ajax call to log in; this is how we identify whether the login process has already started.
+                let getSpinner = () => document.querySelector('.fwoverlay-center.pleasewait');
+                if (getSpinner()) {
+                    console.log('RentalQuirks auto-login aborted - login initiated by user');
+                    // Login is happening due to user interaction. Return true to stop retrying autoLogin().
+                    return true;
+                }
+
                 console.log('RentalQuirks auto-login');
                 loginButton.click();
                 // If the click succeeds, a busy spinner will appear. We can use this as evidence of success.
-                let spinner = document.querySelector('.fwoverlay-center.pleasewait');
-                if (spinner) {
+                if (getSpinner()) {
                     // Button was clicked and login is happening. Return true to stop retrying autoLogin().
-                    return true; //BUG: This isn't sufficient for the case where the user's first page interaction is to click on the Login button. We need to not click the login button if the user does it first.
+                    return true;
                 }
-                // Keep trying until the page changes, because calling click() is ignored until the page has had some user interaction.
+                // Keep trying until the page changes, because calling click() is ignored until the page has had some user interaction (Chromium behaviour - Firefox works immediately).
                 return false;
             }
         }
