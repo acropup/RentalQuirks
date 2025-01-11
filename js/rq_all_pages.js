@@ -404,7 +404,7 @@
 
         // Keep track of autologin preference through localStorage. Default to true when undefined. Note that localStorage values are strings; be careful with conversion!
         let autoLoginPref = localStorage['rentalquirks-autologin'];
-        autoLoginPref = autoLoginPref === "undefined" || autoLoginPref === 'true';
+        autoLoginPref = autoLoginPref === undefined || autoLoginPref === 'true';
         chkbx.checked = autoLoginPref;
 
         // The profile menu hides itself in an annoying way if focus is changed while it's open. These listeners are necessary to make the checkbox interactive without
