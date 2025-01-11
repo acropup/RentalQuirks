@@ -23,6 +23,8 @@ After installing the Stylus browser extension, click the two user.css links belo
 ## Functionality improvements with JavaScript UserScripts
 After installing the Tampermonkey browser extension, go to the [RentalQuirks.user.js direct link](../../raw/master/RentalQuirks.user.js) and click the `Install` button.
 
+For Chrome and Chrome-based browsers (Edge and Vivaldi included), the Manifest V3 update requires you to [enable developer mode to run userscripts](https://www.tampermonkey.net/faq.php#Q209). Please do this if you notice that scripts aren't running.
+
 ## Zebra Barcode Printer integration
 
 The Barcode Print Utility within RentalQuirks uses the Zebra [Browser Print developer tool](https://www.zebra.com/us/en/support-downloads/printer-software/by-request-software.html#browser-print), which is available for free [by request](https://www.zebra.com/us/en/forms/browser-print-request-javascript.html) from their website. A copy of the library code is saved in [js/lib/ZebraBrowserPrint](../../tree/master/js/lib/ZebraBrowserPrint), with a [small change](../../commit/88c9659b35fe7701a19f6839f4a25cbed57bf3f6) regarding `globalThis`. To use with a local printer, the Zebra Browser Print application needs to be installed and run. A copy of the installer (also available on Zebra.com) is saved here ([Zebra Browser Print for Windows](../../blob/master/zebra-browser-print-windows-v131445.exe)).
