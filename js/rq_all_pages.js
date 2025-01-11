@@ -15,6 +15,7 @@
 
     RQ.runOnAppLoad.push(showRWVersionNumber);
     RQ.runOnAppLoad.push(addGlobalApplicationButtons);
+    RQ.runOnAppLoad.push(addAutoLoginMenuOption);
     RQ.runOnAppLoad.push(monitorModuleChange);
     RQ.runOnAppLoad.push(enableMultiModuleSupport);
     RQ.runOnAppLoad.push(interceptCtrl_S);
@@ -386,6 +387,39 @@
 
     function getAppToolbar() {
         return document.querySelector("#fw-app-header .app-usercontrols");
+    }
+
+    /**
+     * Add checkbox in profile menu (top right corner of every screen) to enable and disable auto-login, because sometimes people don't want that feature.
+     * Auto-login is enabled by default. Preference is remembered through localStorage['rentalquirks-autologin'].
+     */
+    function addAutoLoginMenuOption() {
+        let profileMenu = document.querySelector("#fw-app-header .app-usermenu .app-menu-tray");
+        
+        let autoLoginOption = document.createElement('div');
+        autoLoginOption.className = "staticinfo";
+        autoLoginOption.innerHTML = `<input type="checkbox" id="autologin-checkbox"><label for="autologin-checkbox">Enable Auto-Login</label>`;
+        let chkbx = autoLoginOption.firstElementChild;
+        let chklbl = chkbx.nextElementSibling;
+
+        // Keep track of autologin preference through localStorage. Default to true when undefined. Note that localStorage values are strings; be careful with conversion!
+        let autoLoginPref = localStorage['rentalquirks-autologin'];
+        autoLoginPref = autoLoginPref === "undefined" || autoLoginPref === 'true';
+        chkbx.checked = autoLoginPref;
+
+        // The profile menu hides itself in an annoying way if focus is changed while it's open. These listeners are necessary to make the checkbox interactive without
+        // changing focus and causing the menu to disappear. Developed on Edge (Chromium), tested on Firefox, Jan 2025.
+        chkbx.addEventListener('change', (e) => {
+            localStorage['rentalquirks-autologin'] = e.target.checked;
+        });
+        chkbx.addEventListener('mousedown', (e) => { e.preventDefault(); });
+        chklbl.addEventListener('click', (e) => { 
+            chkbx.checked = !chkbx.checked;
+            localStorage['rentalquirks-autologin'] = chkbx.checked;
+            e.preventDefault();
+        });
+        //Insert into profile menu (top right corner of every screen)
+        profileMenu.insertBefore(autoLoginOption, profileMenu.lastElementChild);
     }
 
     function addTitleCaseButton(toolbar, position) {

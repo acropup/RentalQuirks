@@ -31,6 +31,10 @@
         if (errorDiv?.offsetParent) return true;
         // Abort autologin if there is an error popup
         if (document.querySelector(".errorDialog")) return true;
+        // Abort autologin if the user has disabled the feature
+        let autoLoginPref = localStorage['rentalquirks-autologin']; // Default to true when undefined. Note that localStorage values are strings; be careful with conversion!
+        autoLoginPref = autoLoginPref === "undefined" || autoLoginPref === 'true';
+        if (!autoLoginPref) return true;
 
         let loginButton = document.querySelector(".login-button.btnLogin");
         // Check if login button exists and is visible (offsetParent == null implies element is hidden)
