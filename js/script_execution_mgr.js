@@ -6,7 +6,7 @@ RentalQuirks.runOnPage = []; // Scripts are validated on page navigation with te
 RentalQuirks.pollRateMS = 1000;
 RentalQuirks.navTimestamp = 0;
 
-// Since RentalWorks (rentalworksweb.com) acts as a single-page application, we need to make
+// Since RentalWorks (rentalworks.cloud) acts as a single-page application, we need to make
 // an extra effort to apply javascript to new pages as we navigate to them.
 // This will be sufficient for some scripts, but RentalWorks URLs are only as specific 
 // as the Module name, so other strategies (like MutationObservers) are necessary (and 

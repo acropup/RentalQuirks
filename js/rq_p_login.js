@@ -10,8 +10,8 @@
         runScript: autoLogin
     });
 
-    /**This takes you from the "Sign In to RentalWorks" page (rentalworksweb.com/#/default) to the 
-     * actual login page (rentalworksweb.com/#/login) where you enter your username and password.*/
+    /**This takes you from the "Sign In to RentalWorks" page (rentalworks.cloud/#/default) to the 
+     * actual login page (rentalworks.cloud/#/login) where you enter your username and password.*/
     function goToLogin () {
         let h = location.href;
         const entry = "/default";
