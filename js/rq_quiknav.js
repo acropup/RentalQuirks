@@ -187,7 +187,7 @@
             for (let i = 0; i < modules.length; i++) {
                 let cl = modules[i].classList;
                 if (!cl.contains('hidden')) {
-                    select_index ||= i; // Note the first match, in case we need to wrap around
+                    select_index ??= i; // Note the first match, in case we need to wrap around
                     if (found_selected) {
                         cl.add('selected');
                         select_index = i;
@@ -212,7 +212,7 @@
             for (let i = modules.length - 1; i >= 0; i--) {
                 let cl = modules[i].classList;
                 if (!cl.contains('hidden')) {
-                    select_index ||= i; // Note the first match, in case we need to wrap around
+                    select_index ??= i; // Note the first match, in case we need to wrap around
                     if (found_selected) {
                         cl.add('selected');
                         select_index = i;
@@ -231,7 +231,9 @@
         }
         else if (e.key == '?') {
             // Show help
-            RQ.quiknav.popup.querySelector('.rq-help').classList.remove('hidden');
+            let quiknav_help = RQ.quiknav.popup.querySelector('.rq-help');
+            quiknav_help.classList.remove('hidden');
+            quiknav_help.scrollIntoView();
             // Show all modules
             RQ.quiknav.modules.forEach(module => module.classList.remove('hidden'));
             e.preventDefault();
