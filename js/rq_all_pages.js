@@ -279,11 +279,12 @@
     // Normal RW behaviour closes all existing tabs if one tries to navigate to a new module.
     function enableMultiModuleSupport() {
 
-        /**Ctrl+click an option in the main menu to open that module browser without closing existing tabs.
+        /**Click an option in the main menu to open that module browser without closing existing tabs.
+         * Ctrl+click for the regular RW behaviour, which closes all existing tabs while navigating to the new module.
          * @param {MouseEvent} clickEvent listening on tbody element of table 
          */
         let click_main_menu = function (clickEvent) {
-            if (clickEvent.type == "click" && clickEvent.ctrlKey) {
+            if (clickEvent.type == "click" && !clickEvent.ctrlKey) {
                 // .module is for all the sub-menu items. .menu-lv1object is for the root items that go directly to a page (Settings and Reports).
                 let menu_item = clickEvent.target.closest('.module, .menu-lv1object');
                 let module_data = jQuery(menu_item).data('module');

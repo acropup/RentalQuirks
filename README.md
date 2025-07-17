@@ -58,6 +58,8 @@ Here is a short feature list of the **`rentalworks_styles.user.css`** script. Th
 
 Here is a short feature list of the **RentalQuirks** scripts. This includes both the CSS visual style script `rentalquirks_styles.user.css` as well as the JavaScript file `RentalQuirks.user.js`.
 
+- You can use different modules simultaneously in the same browser tab, and avoid losing your work when switching modules!
+- QuikNav - Type `Ctrl + /` for rapid keyboard access to all RentalWorks modules, including opening module browsers, opening specific items, and creating new items.
 - Auto-login - If a password manager autofills your username and password, RentalQuirks will automatically click the Login button for you.
 - Title Case formatting tool, globally available, usable on any form field.
 - Copy and paste Inventory Item properties.
