@@ -83,7 +83,7 @@ function multiword_match(phrase, test) {
  * If there are multiple tabs with the same name, the leftmost tab is returned.
  */
 function find_tab_by_name (tab_name, activate_tab) {
-    let found_tab = Array.from(document.querySelectorAll('#moduletabs > .tabs > .tabcontainer > .tab')).find(tabdiv => tabdiv.dataset.caption === tab_name);
+    let found_tab = Array.from(document.querySelectorAll('#moduletabs > .tabs > .tabcontainer > .tab > .caption')).find(tab_caption => tab_caption.innerText === tab_name)?.parentElement;
     if (found_tab && activate_tab) {
         found_tab.click();
     }

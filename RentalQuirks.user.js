@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RentalQuirks - Feature enhancements for RentalWorks Web
 // @namespace    https://www.github.com/acropup/RentalQuirks/
-// @version      2.23
+// @version      2.24
 // @description  RentalQuirks is a collection of Javascript and CSS customizations that improve usability, layout, and features of the web-based "RentalWorks" rental management software at rentalworksweb.com (or rentalworks.cloud)
 // @homepageURL  https://www.github.com/acropup/RentalQuirks
 // @author       Shane Burgess
