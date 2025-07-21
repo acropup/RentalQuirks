@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalWorks Web Custom Styles
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.12
+@version        0.1.13
 @description    For RentalWorks Web, these style customizations improve the look and feel of rentalworksweb.com (or rentalworks.cloud). These can be used alongside or without the RentalQuirks JavaScript and CSS package.
 @author         Shane Burgess
 @preprocessor   less
@@ -133,9 +133,10 @@
    }
 }
 
-@-moz-document regexp("https?://[^.]+\\.(rentalworksweb\\.com|rentalworks\\.cloud)/(training/)?#/module/settings") {
-   /* The following is only for the Settings module */
-   
+
+/* The following are only for the Settings module, and can be customized based on one's preferences */
+#moduletabs .tabpage[data-tabtype="SETTINGS"] {
+ 
    /* Highlight the sections in Settings that I'm always looking for */
    #btnModuleSettings\.InventorySettings,
    #RentalCategory .panel-heading {
