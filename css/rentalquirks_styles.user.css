@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.2.14
+@version        0.2.15
 @description    For RentalWorks Web at rentalworksweb.com (or rentalworks.cloud), these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -196,12 +196,14 @@
      display: none;
   }
   
-  /* Settings Module - Show module tabs along top of page; RW hides them in the Settings module by default, 
-	   but there's no need to be different. */
-  #moduleMaster[data-module="SettingsController"] #moduletabs > .tabs {
+  /* Settings and Reports Modules - Show module tabs along top of page; RW hides them in the Settings and Rentals modules
+	   by default, but there's no need to be different. */
+  #moduleMaster[data-module="SettingsController"] #moduletabs > .tabs,
+	#moduleMaster[data-module="ReportsController"] #moduletabs > .tabs {
      display: flex !important;
   }
-  #moduletabs .tabpage[data-tabtype="SETTINGS"] .fwsettings {
+  #moduletabs .tabpage[data-tabtype="SETTINGS"] .fwsettings,
+	#moduletabs .tabpage[data-tabtype="REPORTS"] .fwreports {
      margin-top: 0px;
      border-top: 1px solid #9e9e9e;
  }
