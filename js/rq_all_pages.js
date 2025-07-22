@@ -278,13 +278,17 @@
     // Allows the user to open the record browser of many modules in their own tabs.
     // Normal RW behaviour closes all existing tabs if one tries to navigate to a new module.
     function enableMultiModuleSupport() {
+        // @DashboardException - Dashboard Module is the one module that cannot exist alongside other modules, because it does not have #moduletabs. For this reason:
+        // 1. When opening the Dashboard module, we open it in a new browser tab, in order to preserve the currently open RW tabs, and
+        // 2. When in the Dashboard, we open another module with a full module switch. This creates the main #moduletabs tab bar.
 
         /**Click an option in the main menu to open that module browser without closing existing tabs.
          * Ctrl+click for the regular RW behaviour, which closes all existing tabs while navigating to the new module.
          * @param {MouseEvent} clickEvent listening on tbody element of table 
          */
         let click_main_menu = function (clickEvent) {
-            if (clickEvent.type == "click" && !clickEvent.ctrlKey) {
+            // @DashboardException - When in the Dashboard module, moduletabs doesn't exist, so we need to actually switch modules to generate the tab bar.
+            if (clickEvent.type == "click" && !clickEvent.ctrlKey && /* @DashboardException */ document.getElementById("moduletabs")) {
                 // .module is for all the sub-menu items. .menu-lv1object is for the root items that go directly to a page (Settings and Reports).
                 let menu_item = clickEvent.target.closest('.module, .menu-lv1object');
                 let module_data = jQuery(menu_item).data('module');
@@ -292,6 +296,14 @@
                     // Get all the module information from this menu element
                     let url_path = module_data?.navigation; // RW stores the url hash path here
                     let module_name = module_data?.title;
+
+                    // @DashboardException - If choosing Dashboard, open it in a new browser tab. This keeps the open RW tabs from being lost.
+                    if (module_name == "Dashboard") {
+                        window.open("#/" + url_path, '_blank').focus();
+                        clickEvent.stopPropagation();
+                        return false;
+                    }
+
                     if (url_path && module_name) {
                         // If this module is already open, navigate to that tab. Otherwise, open a new tab
                         if (find_tab_by_name(module_name, true)

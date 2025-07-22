@@ -134,6 +134,11 @@
             if (!selected_module) return;
             let item_code_name = selected_module.dataset.code;
             let item_code_value = RQ.quiknav.popup.dataset.itemCode;
+            
+            // @DashboardException - When in the Dashboard module, moduletabs doesn't exist, so we need to actually switch modules to generate the tab bar.
+            if (!document.getElementById("moduletabs")) {
+                location.hash = "#/" + selected_module.dataset.nav;
+            }
 
             let modifier_char = searchbox.value.trim().slice(-1);
             if (modifier_char == '!') {
@@ -166,6 +171,11 @@
                 if (!find_tab_by_name(selected_module.dataset.caption, true)) {
                     // Otherwise, open the module's browse page as a tab, preserving existing tabs
                     RQ.load_module_as_tab(selected_module.dataset.nav);
+                    
+                    // @DashboardException - If choosing Dashboard, open it in a new browser tab, to keep the open RW tabs from being lost
+                    if (selected_module.dataset.caption == "Dashboard") {
+                        window.open("#/" + selected_module.dataset.nav, '_blank').focus();
+                    }
                 }
             }
             searchbox.blur();
