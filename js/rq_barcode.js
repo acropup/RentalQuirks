@@ -349,7 +349,7 @@
       // Ignore any items that failed validation
       if (item_id && deactivated_identifier == 'X' && validate(active_barcode)) {
         // Update each asset with activated barcode values
-        RQ.update_asset(item_id, { BarCode: active_barcode })
+        RQ.api.update_asset(item_id, { BarCode: active_barcode })
           .then(json_or_error => {
             if (typeof json_or_error == 'string' || !(json_or_error['BarCode'])) {
               console.log("update_asset failed: " + json_or_error, queue_item);
@@ -380,7 +380,7 @@
       // Only deactivate barcodes that appear to be valid
       if (item_id && validate(barcode)) {
         // Update each asset's barcode values with an 'X' appended, to identify the barcode as deactivated
-        RQ.update_asset(item_id, { BarCode: barcode + "X" })
+        RQ.api.update_asset(item_id, { BarCode: barcode + "X" })
           .then(json_or_error => {
             if (typeof json_or_error == 'string' || !(json_or_error['BarCode'])) {
               console.log("update_asset failed: " + json_or_error, queue_item);

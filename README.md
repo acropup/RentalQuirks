@@ -33,7 +33,7 @@ The Barcode Print Utility within RentalQuirks uses the Zebra [Browser Print deve
 ![RentalWorks logo with QUIRKS and version number](img/RQ_logo.png "Rental Essentials logo with flower and version number")
 
 If the **CSS** is running, you will see a **QUI sticker** superimposed over the RentalWorks logo.  
-If the **JavaScript** is running, you will see a **version number** superimposed over the RE logo. Note that this is the version number of the RentalWorks Web website, not of the RentalQuirks scripts.
+If the **JavaScript** is running, you will see a **version number** superimposed over the RentalWorks logo. Note that this is the version number of the RentalWorks Web website, not of the RentalQuirks scripts.
 
 You may also press `F12` to open the Chrome Developer Console to see if any exceptions in the scripts are being thrown. On a **full page refresh**, the last initialization script to run writes ***`--- RentalWorks - Quirks mode activated ---`*** to the console. If you do not see this, it may be that the scripts aren't running, or that an error interrupted the script before it could finish.
 
@@ -87,10 +87,6 @@ Here is a short feature list of the **RentalQuirks** scripts. This includes both
   - Extensive logging of printer commands and communications.
 - Unambiguous "Hamburger Menu" icon. *(Optional)*
 
-
-# TODO
-Test the rq_reports.js consolidate lines feature on a wider variety of reports.
-Fix the login race condition that happens when the user clicks the Sign In button 
 
 [Stylus]: https://add0n.com/stylus.html
 [StylusChrome]: https://chrome.google.com/webstore/detail/stylus/clngdbkpkpeebahjckkjfobafhncgmne
