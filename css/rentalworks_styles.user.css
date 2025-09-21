@@ -48,6 +48,9 @@
    #fw-app #fw-app-header .app-title {
       padding-bottom: 7px;
    }
+   #fw-app #fw-app-body {
+      margin-left: 46px;
+   }
   
    /* Move the system update notification back into place */
    .system-update {
@@ -78,11 +81,11 @@
    
    & when (@SelectableUI = 1) {
       /* Make text selectable in the UI like in most webpages */
-      html {
-         -webkit-user-select: text;
-         -moz-user-select: none;
-         -ms-user-select: none;
-         user-select: text;
+      html, label, .caption, .fieldcaption div, .fwformfield-caption, .ddviewbtn-caption, .ddviewbtn div {
+         -webkit-user-select: text !important;
+         -moz-user-select: text !important;
+         -ms-user-select: text !important;
+         user-select: text !important;
       }
    }
   
