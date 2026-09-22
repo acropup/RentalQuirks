@@ -10,7 +10,7 @@
 /* Recommend using Stylus browser extension to host CSS UserStyles
    https://chrome.google.com/webstore/detail/stylus/clngdbkpkpeebahjckkjfobafhncgmne
 
-   Also, use Tampermonkey (Chrome) or Greasemonkey (Firefox) to run the PoRPoise UserScripts.
+   Also, use Tampermonkey (Chrome) or Greasemonkey (Firefox) to run the RentalQuirks.user.js UserScripts.
 */
 
 @-moz-document regexp("https?://[^.]+\\.(rentalworksweb\\.com|rentalworks\\.cloud)/.*") {
