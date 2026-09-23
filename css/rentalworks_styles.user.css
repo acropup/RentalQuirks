@@ -7,7 +7,7 @@
 @preprocessor   less
 
 @var checkbox SelectableUI "Make UI text selectable" 0
-@var checkbox HamburgerMenu "Fix hamburger menu icons" 0
+@var checkbox HamburgerMenu "Fix hamburger menu icons" 1
 @var checkbox HideSettings "Hide unused modules in Settings" 0
 ==/UserStyle== */
 
