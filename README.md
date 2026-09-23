@@ -1,6 +1,8 @@
 # RentalQuirks - Usability Enhancements for RentalWorks Web
 
-RentalQuirks is a collection of JavaScript and CSS customizations for the **RentalWorks Web** rental management software at `https://<your_company>.rentalworks.cloud` and developed by [Database Works](https://dbworks.com/). This is not for the legacy RentalWorks software, which runs as a Windows application; it is for their newer web-based service called RentalWorks Web. Since we don't have control over the code on the Database Works servers, all of these changes are "client-side", that is to say, rentalworks.cloud sends the official webpage to your web browser as usual, and then RentalQuirks modifies the webpage within your browser tab every time the page is loaded. If you choose to uninstall these scripts, RentalWorks will revert to exactly how it's always been. Check out the [Feature Overview](#Feature-Overview) for the current list of features.
+RentalQuirks is a collection of JavaScript and CSS customizations for the **RentalWorks Web** rental management software at `https://<your_company>.rentalworks.cloud` and developed by [Database Works](https://dbworks.com/). It is a completely free addition, and makes RentalWorks substantially easier, more pleasant, and faster to use! It takes a few minutes to install, but users of all levels will benefit from the added functionality. Check out the [Feature Overview](#Feature-Overview) for the current list of features.
+
+Note that this is not for the legacy RentalWorks software, which runs as a Windows application; it is for their newer web-based service called RentalWorks Web. Since we don't have control over the code on the Database Works servers, all of these changes are "client-side", that is to say, rentalworks.cloud sends the official webpage to your web browser as usual, and then RentalQuirks modifies the webpage within your browser tab every time the page is loaded. If you choose to uninstall these scripts, RentalWorks will revert to exactly how it's always been.
 
 # How to use
 
@@ -51,11 +53,6 @@ For users to receive updates to the Tampermonkey script, the `@version` tag in t
 
 # Feature Overview
 
-Here is a short feature list of the **`rentalworks_styles.user.css`** script. This standalone set of styles improves the RentalWorks Web interface without the need for any JavaScript.
-
-- In Settings, highlight headings and sections that are used quite often, so that they're easier to find.
-
-
 Here is a short feature list of the **RentalQuirks** scripts. This includes both the CSS visual style script `rentalquirks_styles.user.css` as well as the JavaScript file `RentalQuirks.user.js`.
 
 - You can use different modules simultaneously in the same browser tab, and avoid losing your work when switching modules!
@@ -85,6 +82,17 @@ Here is a short feature list of the **RentalQuirks** scripts. This includes both
   - Quick Print and skip the queue by typing a barcode and submitting it with Ctrl+Enter.
   - Hover tooltips on many of the buttons describe the expert features available. 
   - Extensive logging of printer commands and communications.
+
+
+Here is a short feature list of the **`rentalworks_styles.user.css`** script. This standalone set of styles improves the RentalWorks Web interface without the need for any JavaScript.
+
+- Names are shown under the Main Menu's icons (when pinned).
+- Tab headers are double-lined to show more of their descriptions, all while reducing the screen space used by the main header.
+- In Settings, highlight the headings and sections that are used quite often, making them easier to find.
+- In Settings, hide modules that your company doesn't use (customized [here](https://github.com/acropup/RentalQuirks/blob/master/css/rentalworks_styles.user.css#L150)).
+- Popup windows make more use of the page's vertical space.
+- Provides helpful notes in areas where default features are hard to discover.
+- Make UI elements selectable, for copy and paste. *(Optional)*
 - Unambiguous "Hamburger Menu" icon. *(Optional)*
 
 
