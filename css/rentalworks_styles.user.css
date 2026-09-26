@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalWorks Web Custom Styles
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.1.16
+@version        0.1.17
 @description    For RentalWorks Web, these style customizations improve the look and feel of rentalworksweb.com (or rentalworks.cloud). These can be used alongside or without the RentalQuirks JavaScript and CSS package.
 @author         Shane Burgess
 @preprocessor   less
@@ -107,7 +107,6 @@
   /* Allow popups to take up more vertical area on the page */
   .fwpopup .fwform[data-popupform="true"] {
     height: 85vh !important;
-    outline: red 3px solid;
   }
   .fwpopup .fwcontainer[data-controller="HandlebarsTemplateController"]{
     min-height: calc(100vh - 132px) !important;
@@ -141,7 +140,8 @@
  
       /* Highlight the sections in Settings that I'm always looking for */
       #btnModuleSettings\.InventorySettings,
-      #RentalCategory .panel-heading {
+      #RentalCategory .panel-heading,
+      #SalesCategory .panel-heading {
          outline: 3px orange dashed;
       }
 
