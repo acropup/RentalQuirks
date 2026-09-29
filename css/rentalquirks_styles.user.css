@@ -1,7 +1,7 @@
 /* ==UserStyle==
 @name           RentalQuirks Custom Styles - For use with RentalQuirks.user.js
 @namespace      https://www.github.com/acropup/RentalQuirks/
-@version        0.2.15
+@version        0.2.16
 @description    For RentalWorks Web at rentalworksweb.com (or rentalworks.cloud), these CSS customizations are complementary to the RentalQuirks UserScripts.
 @preprocessor   less
 @author         Shane Burgess
@@ -53,7 +53,7 @@
   .rq-kbd-shortcut {
     border: 2px solid #69e;
     border-radius: 4px;
-    padding: 0px 5px 1px 5px;
+    padding: 2px 5px 0px 5px;
     margin: 3px;
     background-color: #bdf;
     color: #555;
