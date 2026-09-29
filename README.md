@@ -82,7 +82,11 @@ Here is a short feature list of the **RentalQuirks** scripts. This includes both
   - Quick Print and skip the queue by typing a barcode and submitting it with Ctrl+Enter.
   - Hover tooltips on many of the buttons describe the expert features available. 
   - Extensive logging of printer commands and communications.
-
+- Full-text Find and Replace within Report Template code editors:
+  - Supports basic or Regular Expression (RegEx) search and replace.
+  - [Keyboard shortcuts](https://codemirror.net/5/doc/manual.html#command_find): Find (Ctrl+F), Find Next (Ctrl+G), Find Previous (Ctrl+Shift+G), Replace (Ctrl+Shift+F), Replace All (Ctrl+Shift+R).
+  - Uses CodeMirror plugins: [search.js](https://codemirror.net/5/doc/manual.html#addon_search), [searchcursor.js](https://codemirror.net/5/doc/manual.html#addon_searchcursor), [dialog.js](https://codemirror.net/5/doc/manual.html#addon_dialog).
+  - *If RentalWorks ever updates CodeMirror beyond 4.8, also add these plugins: [annotatescrollbar.js](https://codemirror.net/5/doc/manual.html#addon_annotatescrollbar), [jump-to-line.js](https://codemirror.net/5/doc/manual.html#addon_jump-to-line), [matchesonscrollbar.js](https://codemirror.net/5/doc/manual.html#addon_matchesonscrollbar).*
 
 Here is a short feature list of the **`rentalworks_styles.user.css`** script. This standalone set of styles improves the RentalWorks Web interface without the need for any JavaScript.
 
